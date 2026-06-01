@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>浚博 & 浚棋 的作品集</title>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Noto Sans SC", "PingFang SC", sans-serif;
+    background: linear-gradient(135deg, #fdf6f0 0%, #f0e6ff 50%, #e6f7ff 100%);
+    min-height: 100vh;
+    color: #333;
+  }
+  .hero {
+    text-align: center;
+    padding: 50px 20px 30px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: "🌟";
+    position: absolute;
+    top: 10px; left: 10%;
+    font-size: 36px; opacity: 0.3; animation: float 6s ease-in-out infinite;
+  }
+  .hero::after {
+    content: "🚀";
+    position: absolute;
+    top: 15px; right: 12%;
+    font-size: 32px; opacity: 0.3; animation: float 8s ease-in-out infinite 1s;
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-15px); }
+  }
+  .hero h1 {
+    font-size: 2.8em; font-weight: 800;
+    background: linear-gradient(135deg, #f5a623, #e74c8b, #a78bfa);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 6px;
+  }
+  .hero p {
+    font-size: 1.05em; color: #999;
+  }
+
+  .section-title {
+    max-width: 960px; margin: 32px auto 8px; padding: 0 20px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .section-title .avatar {
+    width: 42px; height: 42px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+  .section-title .avatar.bo { background: linear-gradient(135deg, #fff3e0, #ffe0b2); }
+  .section-title .avatar.qi { background: linear-gradient(135deg, #e0f7fa, #b2ebf2); }
+  .section-title h2 { font-size: 1.4em; font-weight: 700; color: #555; }
+  .section-title .badge {
+    font-size: 0.75em; padding: 2px 10px; border-radius: 20px;
+    background: #f0f0f0; color: #999;
+  }
+
+  .gallery {
+    max-width: 960px; margin: 0 auto; padding: 12px 20px 32px;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+  }
+  .card {
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(8px);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.6);
+  }
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 36px rgba(0,0,0,0.1);
+  }
+  .card:active { transform: scale(0.98); }
+  .card a { text-decoration: none; color: inherit; display: block; }
+  .card-icon {
+    height: 130px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 52px;
+    position: relative;
+  }
+  .card-icon .emoji { z-index: 1; }
+  .card-icon .bg-shape {
+    position: absolute; width: 100px; height: 100px;
+    border-radius: 50%; opacity: 0.15;
+  }
+  .card-body { padding: 18px; }
+  .card-body h2 { font-size: 1.15em; font-weight: 700; margin-bottom: 4px; }
+  .card-body .tag {
+    display: inline-block;
+    font-size: 0.75em; padding: 2px 10px; border-radius: 20px;
+    background: #f0f0f0; color: #888;
+    margin-bottom: 6px;
+  }
+  .card-body p { font-size: 0.88em; color: #888; line-height: 1.5; }
+
+  /* 浚棋的卡片配色（海洋蓝） */
+  .qi-section .card:nth-child(1) .card-icon { background: linear-gradient(135deg, #e0f7fa, #b2ebf2); }
+  .qi-section .card:nth-child(1) .bg-shape { background: #00bcd4; width: 120px; height: 120px; }
+
+  /* 浚博的卡片配色 */
+  .bo-section .card:nth-child(1) .card-icon { background: linear-gradient(135deg, #fff3e0, #ffe0b2); }
+  .bo-section .card:nth-child(1) .bg-shape { background: #ff9800; width: 120px; height: 120px; }
+  .bo-section .card:nth-child(2) .card-icon { background: linear-gradient(135deg, #fce4ec, #f8bbd0); }
+  .bo-section .card:nth-child(2) .bg-shape { background: #e91e63; }
+  .bo-section .card:nth-child(3) .card-icon { background: linear-gradient(135deg, #e3f2fd, #bbdefb); }
+  .bo-section .card:nth-child(3) .bg-shape { background: #2196f3; }
+
+  .footer {
+    text-align: center; padding: 24px 20px 36px;
+    color: #bbb; font-size: 0.85em;
+  }
+  .footer .names { margin-bottom: 4px; }
+  .footer .names .bo-name { color: #ff9800; }
+  .footer .names .qi-name { color: #00bcd4; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>⭐ 我们的作品集</h1>
+  <p>浚博 🤝 浚棋 · 用 ❤ 记录成长</p>
+</div>
+
+<!-- ============ 浚棋的作品 ============ -->
+<div class="section-title qi-section">
+  <div class="avatar qi">🐟</div>
+  <h2>浚棋的作品</h2>
+  <span class="badge">弟弟</span>
+</div>
+<div class="gallery qi-section">
+
+  <div class="card">
+    <a href="deep-evolution/index.html" target="_blank">
+      <div class="card-icon">
+        <span class="bg-shape"></span>
+        <span class="emoji">🐟</span>
+      </div>
+      <div class="card-body">
+        <span class="tag">游戏 · 进化</span>
+        <h2>深海进化大冒险</h2>
+        <p>大鱼吃小鱼，进化成深海霸主！送给浚棋小宝贝。</p>
+      </div>
+    </a>
+  </div>
+
+</div>
+
+<!-- ============ 浚博的作品 ============ -->
+<div class="section-title bo-section">
+  <div class="avatar bo">🤺</div>
+  <h2>浚博的作品</h2>
+  <span class="badge">哥哥</span>
+</div>
+<div class="gallery bo-section">
+
+  <div class="card">
+    <a href="stickman-fighter/index.html" target="_blank">
+      <div class="card-icon">
+        <span class="bg-shape"></span>
+        <span class="emoji">🤺</span>
+      </div>
+      <div class="card-body">
+        <span class="tag">游戏</span>
+        <h2>火柴人大乱斗</h2>
+        <p>自选武器，和火柴人对手来一场热血对决！</p>
+      </div>
+    </a>
+  </div>
+
+  <div class="card">
+    <a href="mv-space-star/video.mp4" target="_blank">
+      <div class="card-icon">
+        <span class="bg-shape"></span>
+        <span class="emoji">🎬</span>
+      </div>
+      <div class="card-body">
+        <span class="tag">MV · AI 艺术</span>
+        <h2>燃尽星河 MV</h2>
+        <p>AI 艺术创作参赛作品——用 AI 生成的音乐视频。</p>
+      </div>
+    </a>
+  </div>
+
+  <div class="card">
+    <a href="math20/index.html" target="_blank">
+      <div class="card-icon">
+        <span class="bg-shape"></span>
+        <span class="emoji">🔢</span>
+      </div>
+      <div class="card-body">
+        <span class="tag">学习 · 数学</span>
+        <h2>20以内加减法</h2>
+        <p>小朋友的数学练习小工具，轻松学算术！</p>
+      </div>
+    </a>
+  </div>
+
+</div>
+
+<div class="footer">
+  <div class="names">
+    <span class="bo-name">徐浚博</span>  🤝  <span class="qi-name">徐浚棋</span>
+  </div>
+  用 <span>❤</span> 记录成长的每一步
+</div>
+
+</body>
+</html>
