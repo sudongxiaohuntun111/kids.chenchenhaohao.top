@@ -44,20 +44,41 @@ class Renderer {
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, this.w, this.h);
 
-    // Light rays from surface
+    // 水面光照效果：动态光条纹（模拟水面光线投射到深海）
     ctx.save();
-    for (let i = 0; i < 6; i++) {
-      const x = 100 + i * 180 + Math.sin(frame * 0.002 + i * 1.5) * 30;
-      const g2 = ctx.createLinearGradient(x, 0, x + 20 + i * 5, this.h);
-      g2.addColorStop(0, 'rgba(120, 200, 255, 0.04)');
-      g2.addColorStop(0.5, 'rgba(120, 200, 255, 0.02)');
+    const time = frame * 0.002;
+    for (let i = 0; i < 8; i++) {
+      const x = 80 + i * 145 + Math.sin(time + i * 1.8) * 40;
+      const width = 15 + i * 4 + Math.sin(time * 0.7 + i * 2.1) * 8;
+      const alpha = 0.03 + 0.02 * Math.sin(time * 0.5 + i * 1.3);
+      const g2 = ctx.createLinearGradient(x, 0, x + width, this.h * 0.3);
+      g2.addColorStop(0, `rgba(120, 200, 255, ${alpha + 0.01})`);
+      g2.addColorStop(0.5, `rgba(120, 200, 255, ${alpha * 0.5})`);
       g2.addColorStop(1, 'rgba(120, 200, 255, 0)');
       ctx.fillStyle = g2;
       ctx.beginPath();
-      ctx.moveTo(x - 15, 0);
-      ctx.lineTo(x + 5 + i * 3, this.h);
-      ctx.lineTo(x - 15 - i * 3, this.h);
+      ctx.moveTo(x - 12, 0);
+      ctx.lineTo(x + width, this.h);
+      ctx.lineTo(x - 12 - width * 0.5, this.h);
       ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+
+    // 水面波浪光效（顶部波动光带模拟水面闪烁）
+    ctx.save();
+    ctx.globalAlpha = 0.03 + 0.02 * Math.sin(time * 0.3);
+    for (let i = 0; i < 5; i++) {
+      const wx = (i * 280 + Math.sin(time + i * 2.5) * 60) % (this.w + 100) - 50;
+      const ww = 100 + Math.sin(time * 0.4 + i * 1.1) * 40;
+      const grad = ctx.createLinearGradient(wx, 0, wx + ww, 20);
+      grad.addColorStop(0, 'rgba(180, 230, 255, 0)');
+      grad.addColorStop(0.3, 'rgba(180, 230, 255, 0.06)');
+      grad.addColorStop(0.7, 'rgba(180, 230, 255, 0.06)');
+      grad.addColorStop(1, 'rgba(180, 230, 255, 0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.ellipse(wx + ww / 2, 5 + Math.sin(time * 0.6 + i * 1.7) * 4, ww / 2, 8, 0, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.restore();

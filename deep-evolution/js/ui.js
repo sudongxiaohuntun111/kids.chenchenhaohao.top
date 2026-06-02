@@ -137,12 +137,17 @@ class UIManager {
     };
 
     // Bottom hint
-    ctx.fillStyle = 'rgba(100, 140, 180, 0.4)';
+    const isTouchDevice = !!((window.matchMedia && window.matchMedia('(pointer: coarse)').matches) || navigator.maxTouchPoints > 0);
+    ctx.fillStyle = 'rgba(100, 140, 180, 0.55)';
     ctx.font = '13px Arial, "PingFang SC"';
-    ctx.fillText('键盘 WASD / 方向键移动 · 鼠标跟随 · 触屏拖拽', this.w / 2, this.h - 30);
-
-    // Operations hint
-    ctx.fillText('Shift 加速冲刺', this.w / 2, this.h - 10);
+    ctx.textAlign = 'center';
+    if (isTouchDevice) {
+      ctx.fillText('📱 左下摇杆移动 · 右下按钮冲刺/技能', this.w / 2, this.h - 30);
+      ctx.fillText('👆 先点开始，再进海里追猎', this.w / 2, this.h - 10);
+    } else {
+      ctx.fillText('键盘 WASD / 方向键移动 · 鼠标跟随 · 触屏拖拽', this.w / 2, this.h - 30);
+      ctx.fillText('Shift 加速冲刺', this.w / 2, this.h - 10);
+    }
   }
 
   // ---- HUD ----
@@ -417,7 +422,7 @@ class UIManager {
   }
 
   // ---- 游戏结束画面 ----
-  drawGameOver(player, frame) {
+  drawGameOver(player, frame, collection) {
     const ctx = this.ctx;
 
     // Dark overlay
@@ -426,70 +431,109 @@ class UIManager {
     ctx.fillRect(0, 0, this.w, this.h);
 
     // Game over text
-    const titleY = this.h * 0.22;
+    const titleY = this.h * 0.18;
     ctx.shadowBlur = 20;
     ctx.shadowColor = '#ff4466';
     ctx.fillStyle = '#ff4466';
-    ctx.font = 'bold 48px Arial, "PingFang SC"';
+    ctx.font = 'bold 42px Arial, "PingFang SC"';
     ctx.textAlign = 'center';
     ctx.fillText('💀 游戏结束', this.w / 2, titleY);
     ctx.restore();
 
     // Stats panel
-    const panelX = this.w / 2 - 160;
-    const panelY = this.h * 0.30;
-    const panelW = 320;
+    const panelX = this.w / 2 - 170;
+    const panelY = this.h * 0.24;
+    const panelW = 340;
 
-    ctx.fillStyle = 'rgba(8, 20, 48, 0.8)';
-    this.roundRect(ctx, panelX, panelY, panelW, 200, 16);
+    ctx.fillStyle = 'rgba(8, 20, 48, 0.85)';
+    this.roundRect(ctx, panelX, panelY, panelW, 280, 16);
     ctx.fill();
     ctx.strokeStyle = 'rgba(60, 140, 220, 0.3)';
     ctx.lineWidth = 1;
-    this.roundRect(ctx, panelX, panelY, panelW, 200, 16);
+    this.roundRect(ctx, panelX, panelY, panelW, 280, 16);
     ctx.stroke();
-
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '18px Arial, "PingFang SC"';
-    ctx.textAlign = 'center';
 
     const formData = player.getFormData();
     const diffData = DIFFICULTY[player.difficulty];
 
+    let sy = panelY + 30;
     const stats = [
-      `最终形态：${formData.name}`,
-      `总得分：${player.totalScore}`,
-      `吞噬数：${player.totalEaten || 0}`,
-      `进化次数：${player.evolutionCount || 0}`,
-      `难度：${diffData.icon} ${diffData.label}`,
+      { label: `最终形态：${formData.name}`, color: '#ffffff', bold: true },
+      { label: `总得分：${player.totalScore}`, color: '#ffdd44', bold: true },
+      { label: `吞噬数：${player.totalEaten || 0}`, color: 'rgba(200, 230, 255, 0.8)' },
+      { label: `进化次数：${player.evolutionCount || 0}`, color: 'rgba(200, 230, 255, 0.8)' },
+      { label: `难度：${diffData.icon} ${diffData.label}`, color: 'rgba(200, 230, 255, 0.8)' },
     ];
 
-    let sy = panelY + 35;
     for (const s of stats) {
-      ctx.fillStyle = 'rgba(200, 230, 255, 0.8)';
-      ctx.fillText(s, this.w / 2, sy);
-      sy += 30;
+      ctx.fillStyle = s.color;
+      ctx.font = s.bold ? 'bold 20px Arial, "PingFang SC"' : '16px Arial, "PingFang SC"';
+      ctx.textAlign = 'center';
+      ctx.fillText(s.label, this.w / 2, sy);
+      sy += 28;
     }
 
-    // High score
-    const highScoreKey = `deepEvoHighScore_${player.difficulty}`;
-    const prevHigh = parseInt(localStorage.getItem(highScoreKey) || '0');
-    if (player.totalScore > prevHigh) {
-      localStorage.setItem(highScoreKey, player.totalScore);
+    // ---- 新成就展示 ----
+    const newForms = collection ? collection.getNewForms() : [];
+    const newAbils = collection ? collection.getNewAbilities() : [];
+    const hasNew = newForms.length > 0 || newAbils.length > 0;
+
+    if (hasNew) {
+      sy += 8;
+      ctx.fillStyle = '#44ddff';
+      ctx.font = 'bold 14px Arial, "PingFang SC"';
+      ctx.textAlign = 'center';
+      ctx.fillText('📖 本次解锁', this.w / 2, sy);
+      sy += 22;
+
+      const newLabels = [];
+      for (const f of newForms) {
+        const fd = EVOLUTION_FORMS[f];
+        newLabels.push(fd ? `${fd.icon} ${fd.name}` : f);
+      }
+      for (const a of newAbils) {
+        const ad = ABILITIES[a];
+        newLabels.push(ad ? `${ad.icon} ${ad.name}` : a);
+      }
+      // 最多显示 4 行，避免溢出
+      const displayLabels = newLabels.slice(0, 4);
+      for (const label of displayLabels) {
+        ctx.fillStyle = 'rgba(180, 220, 255, 0.7)';
+        ctx.font = '12px Arial, "PingFang SC"';
+        ctx.textAlign = 'center';
+        ctx.fillText(label, this.w / 2, sy);
+        sy += 18;
+      }
+      if (newLabels.length > 4) {
+        ctx.fillStyle = 'rgba(100, 140, 180, 0.5)';
+        ctx.font = '11px Arial';
+        ctx.fillText(`...还有 ${newLabels.length - 4} 项`, this.w / 2, sy);
+        sy += 18;
+      }
+    }
+
+    // High score（使用 collection 的持久化方法）
+    sy += 10;
+    const prevHigh = collection ? collection.getHighScore(player.difficulty) : 0;
+    if (player.totalScore > prevHigh && collection) {
+      collection.setHighScore(player.difficulty, player.totalScore);
       ctx.save();
       ctx.shadowBlur = 15;
       ctx.shadowColor = '#ffdd44';
       ctx.fillStyle = '#ffdd44';
       ctx.font = 'bold 22px Arial, "PingFang SC"';
-      ctx.fillText('🎉 新纪录！', this.w / 2, sy + 20);
+      ctx.textAlign = 'center';
+      ctx.fillText('🎉 新纪录！', this.w / 2, sy);
       ctx.restore();
     } else {
       ctx.fillStyle = 'rgba(150, 180, 210, 0.5)';
       ctx.font = '14px Arial';
-      ctx.fillText(`最高记录：${prevHigh}`, this.w / 2, sy + 20);
+      ctx.textAlign = 'center';
+      ctx.fillText(`最高记录：${prevHigh}`, this.w / 2, sy);
     }
 
     // Buttons
-    const btnY = this.h * 0.78;
+    const btnY = this.h * 0.76;
     const btnGap = 30;
     const btnW = 180;
     const btnH = 50;

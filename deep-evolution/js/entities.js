@@ -63,6 +63,18 @@ class Player {
     this.eatAnim = 0;
     this.damageFlash = 0;
     this.evolutionFlash = 0;
+
+    // v2 能力状态
+    this.camouflageState = 'off'; // 'off' | 'hiding' | 'hidden' | 'striking'
+    this.camouflageTimer = 0;
+    this.bloodlustActive = false;
+    this.abyssMawActive = false;
+    this.camouflageAlpha = 1.0;
+    this.ancientArmorActive = false;
+    this.ancientPowerActive = false;
+    this.tyrantAuraActive = false;
+    this.tyrantAuraTimer = 0;
+    this.bubbleShieldReady = false;
   }
 
   getFormData() {
@@ -70,13 +82,31 @@ class Player {
   }
 
   getEffectiveSpeed() {
-    const base = this.speed * (this.getFormData().speedMul || 1.0) * this.bonus.speedMul;
-    if (this.sprintCd > 0) return base * 1.6;
+    let base = this.speed * (this.getFormData().speedMul || 1.0) * this.bonus.speedMul;
+    // 嗜血狂暴加速
+    if (this.bloodlustActive) base *= 2;
+    if (this.sprintCd > 0) base *= 1.6;
     return base;
   }
 
   getEatRange() {
-    return this.size * 0.7 * (1 + this.bonus.eatRange);
+    let range = this.size * 0.7 * (1 + this.bonus.eatRange);
+    // 远古之力翻倍
+    if (this.ancientPowerActive) range *= 2;
+    // 拟态伪装隐身后攻击范围 x3
+    if (this.camouflageState === 'striking') range *= 3;
+    // 深渊巨口：允许吞更大猎物，效果上是 eatRange 提升
+    if (this.abyssMawActive) range *= 1.5;
+    return range;
+  }
+
+  getMaxEatRatio() {
+    // 返回玩家能吃猎物 size / 玩家 size 的最大比例
+    // 默认能吃 size <= 玩家 size * 0.8 的鱼
+    // 深渊巨口可吃 size <= 玩家 size * 1.2 的鱼
+    let ratio = 0.8;
+    if (this.abyssMawActive) ratio = 1.2;
+    return ratio;
   }
 
   getViewRange() {
@@ -86,10 +116,17 @@ class Player {
   takeDamage(amount) {
     if (this.invincible || this.damageFlash > 0) return false;
 
-    // Check bubble shield
+    // 远古甲胄免疫
+    if (this.ancientArmorActive) return false;
+
+    // 嗜血伤害免疫（低血量狂暴期间）
+    if (this.bloodlustActive) return false;
+
+    // 检查气泡护盾
     if (this.bonus.hasBubbleShield && !this.cooldowns['bubbleShield']) {
-      this.cooldowns['bubbleShield'] = 180; // 3 sec CD after block
-      return false; // blocked
+      this.cooldowns['bubbleShield'] = ABILITIES.bubbleShield.cooldown * 60;
+      // 反弹：眩晕攻击者
+      return 'blocked';
     }
 
     this.hp -= amount;
@@ -108,12 +145,9 @@ class Player {
   }
 
   addScore(amount) {
-    // Apply frenzy bonus
-    if (this.bonus.hasFrenzy && amount >= 5) {
-      amount = Math.floor(amount * 1.5);
-    }
-    // Apply ancient power
-    if (this.activeEffects.ancientPower) {
+    // 狂暴撕咬已在 main.js 中处理，此处不再重复叠加
+    // 远古之力：吞噬积分翻倍
+    if (this.ancientPowerActive) {
       amount *= 2;
     }
 
@@ -175,6 +209,36 @@ class Player {
     } else {
       this.angle = this.targetAngle;
     }
+
+    // ---- v2 能力状态更新 ----
+    this._updateBloodlust();
+    this._updateActiveEffects();
+  }
+
+  // 嗜血：HP≤30% 时自动狂暴 + 保护 E 键强制激活覆盖
+  _updateBloodlust() {
+    if (!this.bonus.hasBloodlust) {
+      this.bloodlustActive = false;
+      return;
+    }
+    // 主动激活效果（E 键触发）优先于被动
+    if (this.activeEffects.bloodlust && this.activeEffects.bloodlust > 0) {
+      this.bloodlustActive = true;
+      return;
+    }
+    const hpRatio = this.hp / this.maxHp;
+    this.bloodlustActive = hpRatio <= 0.3;
+  }
+
+  // 拟态伪装由 Game._updateCamouflageState() 管理状态机
+  // Player 端仅维护 alpha 渲染属性
+
+  // 更新主动效果的标记
+  _updateActiveEffects() {
+    this.ancientArmorActive = !!this.activeEffects.ancientArmor;
+    this.ancientPowerActive = !!this.activeEffects.ancientPower;
+    this.tyrantAuraActive = !!this.activeEffects.tyrantAura;
+    this.abyssMawActive = !!this.activeEffects.abyssMaw;
   }
 
   getAbilityLevel(id) {
@@ -200,6 +264,17 @@ class Player {
       this.abilities.push({ id, level: 1 });
       def.apply(this, 1);
     }
+  }
+
+  // 获取当前形态的专属能力列表
+  getFormAbilities() {
+    const result = [];
+    for (const [id, def] of Object.entries(ABILITIES)) {
+      if (!def.general && def.form === this.form) {
+        result.push({ id, ...def });
+      }
+    }
+    return result;
   }
 }
 
@@ -243,16 +318,105 @@ class Prey {
     this.aggroDistance = (!this.edible && !this.harmful) ? difficultyConfig.aggroRange : 0;
     this.stunned = false;
     this.stunTimer = 0;
+
+    // v2 额外状态
+    this.confused = false;     // 混乱状态（深渊之歌）
+    this.confusedTimer = 0;
+    this.vortexTarget = null;  // 被漩涡牵引的目标点
+    this.vortexPullSpeed = 0;
+    this.fireDamage = 0;       // 火焰持续伤害
+    this.fireTimer = 0;
+    this.knockback = { x: 0, y: 0, timer: 0 }; // 击退
+    this.hp = type.harmful ? 3 : 1; // v2 猎物血量
+    this.isAlly = false;       // AI 盟友
+    this.allyOwner = null;     // 盟友归属
+    this.allyLifetime = 0;     // 盟友剩余生命
   }
 
-  update(playerX, playerY, playerSize, bounds) {
+  update(playerX, playerY, playerSize, bounds, playerForm) {
     this.bodyWave += 0.03;
+
+    // ---- 火焰伤害 ----
+    if (this.fireTimer > 0) {
+      this.fireTimer--;
+      this.hp -= this.fireDamage * 0.016; // 每秒伤害按帧分配
+      if (this.hp <= 0) {
+        this.alive = false;
+        return;
+      }
+    }
+
+    // ---- 击退 ----
+    if (this.knockback.timer > 0) {
+      this.knockback.timer--;
+      this.x += this.knockback.x;
+      this.y += this.knockback.y;
+      this.knockback.x *= 0.9;
+      this.knockback.y *= 0.9;
+      // 击退期间继续处理眩晕
+      if (this.stunned) {
+        this.stunTimer--;
+        if (this.stunTimer <= 0) this.stunned = false;
+      }
+      return;
+    }
 
     // Stun
     if (this.stunned) {
       this.stunTimer--;
       if (this.stunTimer <= 0) this.stunned = false;
+      // 眩晕期间缓慢移动
+      this.x += Math.cos(this.angle) * this.speed * 0.2;
+      this.y += Math.sin(this.angle) * this.speed * 0.2;
       return;
+    }
+
+    // ---- AI 盟友行为 ----
+    if (this.isAlly) {
+      this.allyLifetime--;
+      if (this.allyLifetime <= 0) {
+        this.alive = false;
+        return;
+      }
+      // 跟随玩家并自动吃猎物
+      const dx = playerX - this.x;
+      const dy = playerY - this.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > 80) {
+        this.targetAngle = Math.atan2(dy, dx);
+        this.speed = this.baseSpeed * 1.5;
+      } else {
+        this.speed = this.baseSpeed;
+        this.wander();
+      }
+      this._applyMovement(bounds);
+      return;
+    }
+
+    // ---- 暴君威压：全屏减速 ----
+    let speedMul = 1;
+    // (在 main.js 中处理)
+
+    // ---- 混乱状态 ----
+    if (this.confused) {
+      this.confusedTimer--;
+      if (this.confusedTimer <= 0) this.confused = false;
+      // 随机游动
+      this.wander();
+      this.speed = this.baseSpeed * 0.5;
+      this._applyMovement(bounds);
+      return;
+    }
+
+    // ---- 漩涡牵引 ----
+    if (this.vortexTarget) {
+      const dx = this.vortexTarget.x - this.x;
+      const dy = this.vortexTarget.y - this.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > 5 && dist > 0) {
+        this.x += (dx / dist) * this.vortexPullSpeed;
+        this.y += (dy / dist) * this.vortexPullSpeed;
+      }
     }
 
     // Check aggro towards player (only enemies)
@@ -261,9 +425,14 @@ class Prey {
       const dy = playerY - this.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       if (dist < this.aggroDistance && dist > 0) {
-        // Move towards player
-        this.targetAngle = Math.atan2(dy, dx);
-        this.speed = this.baseSpeed * (1 + 0.5 * (1 - dist / this.aggroDistance));
+        // 拟态伪装隐身时敌人忽略玩家
+        if (playerForm === 'mosasaurus' && this._isPlayerHidden()) {
+          this.speed = this.baseSpeed;
+          this.wander();
+        } else {
+          this.targetAngle = Math.atan2(dy, dx);
+          this.speed = this.baseSpeed * (1 + 0.5 * (1 - dist / this.aggroDistance));
+        }
       } else {
         this.speed = this.baseSpeed;
         this.wander();
@@ -273,7 +442,11 @@ class Prey {
       const dx = this.x - playerX;
       const dy = this.y - playerY;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < playerSize * 3 && dist > 0) {
+      // 隐身时不逃跑
+      if (this._isPlayerHidden()) {
+        this.speed = this.baseSpeed;
+        this.wander();
+      } else if (dist < playerSize * 3 && dist > 0) {
         this.targetAngle = Math.atan2(dy, dx);
         this.speed = this.baseSpeed * 2;
       } else {
@@ -282,6 +455,15 @@ class Prey {
       }
     }
 
+    this._applyMovement(bounds);
+  }
+
+  _isPlayerHidden() {
+    // This will be set by main.js
+    return this._playerHidden || false;
+  }
+
+  _applyMovement(bounds) {
     // Smooth angle
     let angleDiff = this.targetAngle - this.angle;
     while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
@@ -312,23 +494,20 @@ class Prey {
   }
 
   getPulseSize() {
-    // For jellyfish/puffer - pulsing effect
     return this.size + Math.sin(this.pulsePhase) * 2;
   }
 
-  // Check if this prey can be eaten by the player
   isEatableBy(player) {
     if (!this.alive) return false;
     if (!this.edible) return false;
-    const playerEatRange = player.getEatRange();
-    return this.size < playerEatRange;
+    const maxPreySize = player.size * player.getMaxEatRatio();
+    return this.size < maxPreySize;
   }
 
-  // Check if this enemy can damage the player
   canDamage(player) {
     if (!this.alive) return false;
-    if (this.harmful) return true; // jellyfish, puffer always damage
-    if (!this.edible && this.size > player.size) return true; // bigger fish
+    if (this.harmful) return true;
+    if (!this.edible && this.size > player.size) return true;
     return false;
   }
 }

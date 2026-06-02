@@ -13,8 +13,20 @@ class InputManager {
     this.usingMouse = false;
     this.moveDir = { x: 0, y: 0 };
     this.sprintPressed = false;
+    this.mobileControlsRoot = document.getElementById('mobileControls');
+    this.isCoarsePointer = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+    this.hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    this.isMobile = this.isCoarsePointer || this.hasTouch;
+    this.joystickActive = false;
+    this.joystickPointerId = null;
+    this.joystickVector = { x: 0, y: 0 };
+    this.joystickKnob = null;
+    this.joystickBase = null;
+    this.sprintButton = null;
+    this.abilityButton = null;
 
     this._bindEvents();
+    this._setupMobileControls();
   }
 
   _bindEvents() {
@@ -67,6 +79,133 @@ class InputManager {
     }, { passive: false });
   }
 
+  _setupMobileControls() {
+    if (!this.mobileControlsRoot || !this.isMobile) return;
+
+    this.mobileControlsRoot.innerHTML = `
+      <div class="mobile-controls-panel">
+        <div class="mobile-joystick" aria-label="移动摇杆">
+          <div class="mobile-stick">
+            <div class="mobile-knob"></div>
+          </div>
+          <div class="mobile-stick-label">移动</div>
+        </div>
+        <div class="mobile-actions">
+          <button type="button" class="mobile-action-button sprint-button">⚡ 冲刺</button>
+          <button type="button" class="mobile-action-button ability-button">✨ 技能</button>
+        </div>
+      </div>
+    `;
+
+    this.joystickBase = this.mobileControlsRoot.querySelector('.mobile-stick');
+    this.joystickKnob = this.mobileControlsRoot.querySelector('.mobile-knob');
+    this.sprintButton = this.mobileControlsRoot.querySelector('.sprint-button');
+    this.abilityButton = this.mobileControlsRoot.querySelector('.ability-button');
+
+    this._bindJoystickEvents();
+    this._bindMobileButtons();
+    this._resetJoystick();
+  }
+
+  _bindJoystickEvents() {
+    if (!this.joystickBase || !this.joystickKnob) return;
+
+    const onDown = (e) => {
+      if (e.button !== undefined && e.button !== 0) return;
+      e.preventDefault();
+      this.joystickActive = true;
+      this.joystickPointerId = e.pointerId;
+      this.joystickBase.setPointerCapture?.(e.pointerId);
+      this._updateJoystickFromEvent(e);
+    };
+
+    const onMove = (e) => {
+      if (!this.joystickActive || this.joystickPointerId !== e.pointerId) return;
+      e.preventDefault();
+      this._updateJoystickFromEvent(e);
+    };
+
+    const onUp = (e) => {
+      if (this.joystickPointerId !== null && this.joystickPointerId !== e.pointerId) return;
+      e.preventDefault();
+      this._resetJoystick();
+    };
+
+    this.joystickBase.addEventListener('pointerdown', onDown, { passive: false });
+    this.joystickBase.addEventListener('pointermove', onMove, { passive: false });
+    this.joystickBase.addEventListener('pointerup', onUp, { passive: false });
+    this.joystickBase.addEventListener('pointercancel', onUp, { passive: false });
+    this.joystickBase.addEventListener('lostpointercapture', onUp, { passive: false });
+  }
+
+  _bindMobileButtons() {
+    if (!this.sprintButton || !this.abilityButton) return;
+
+    const releaseSprint = () => {
+      this.sprintPressed = false;
+      this.sprintButton.classList.remove('is-active');
+    };
+
+    this.sprintButton.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      this.sprintPressed = true;
+      this.sprintButton.classList.add('is-active');
+      this.sprintButton.setPointerCapture?.(e.pointerId);
+    }, { passive: false });
+    this.sprintButton.addEventListener('pointerup', (e) => {
+      e.preventDefault();
+      releaseSprint();
+    }, { passive: false });
+    this.sprintButton.addEventListener('pointercancel', releaseSprint);
+    this.sprintButton.addEventListener('lostpointercapture', releaseSprint);
+
+    const fireAbility = (e) => {
+      e.preventDefault();
+      this.abilityButton.classList.add('is-active');
+      const keyEvent = new KeyboardEvent('keydown', {
+        key: 'e',
+        code: 'KeyE',
+        bubbles: true,
+      });
+      window.dispatchEvent(keyEvent);
+      window.setTimeout(() => this.abilityButton.classList.remove('is-active'), 120);
+    };
+
+    this.abilityButton.addEventListener('pointerdown', fireAbility, { passive: false });
+    this.abilityButton.addEventListener('click', (e) => e.preventDefault());
+  }
+
+  _updateJoystickFromEvent(e) {
+    if (!this.joystickBase || !this.joystickKnob) return;
+    const rect = this.joystickBase.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    const dx = e.clientX - centerX;
+    const dy = e.clientY - centerY;
+    const radius = Math.max(1, rect.width / 2 - 14);
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const clamped = dist > radius ? radius / dist : 1;
+    const nx = (dx / radius) * clamped;
+    const ny = (dy / radius) * clamped;
+    this.joystickVector.x = Math.max(-1, Math.min(1, nx));
+    this.joystickVector.y = Math.max(-1, Math.min(1, ny));
+
+    const knobRadius = Math.min(18, radius * 0.46);
+    this.joystickKnob.style.transform = `translate(-50%, -50%) translate(${this.joystickVector.x * radius * 0.62}px, ${this.joystickVector.y * radius * 0.62}px)`;
+    this.joystickKnob.style.width = `${knobRadius * 2}px`;
+    this.joystickKnob.style.height = `${knobRadius * 2}px`;
+  }
+
+  _resetJoystick() {
+    this.joystickActive = false;
+    this.joystickPointerId = null;
+    this.joystickVector.x = 0;
+    this.joystickVector.y = 0;
+    if (this.joystickKnob) {
+      this.joystickKnob.style.transform = 'translate(-50%, -50%)';
+    }
+  }
+
   getMoveDirection(playerX, playerY) {
     let dx = 0, dy = 0;
 
@@ -96,6 +235,12 @@ class InputManager {
         dx = tx / dist;
         dy = ty / dist;
       }
+    }
+
+    // Mobile virtual joystick
+    if (this.joystickActive) {
+      dx = this.joystickVector.x;
+      dy = this.joystickVector.y;
     }
 
     // Normalize

@@ -39,7 +39,6 @@ class BubbleParticle extends Particle {
     super.update();
     this.wobblePhase += 0.03;
     this.vx = Math.sin(this.wobblePhase) * this.wobbleAmp;
-    // Oscillate size slightly
     this.size = this.maxSize * (0.8 + 0.2 * Math.sin(this.wobblePhase * 2));
   }
 }
@@ -121,11 +120,248 @@ class ParticleSystem {
     })());
   }
 
+  // ---- v2 新增粒子特效 ----
+
+  // 嗜血红光粒子
+  spawnBloodlustParticles(x, y, size) {
+    for (let i = 0; i < 12; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const dist = size * (0.5 + Math.random() * 0.5);
+      const speed = 0.5 + Math.random();
+      this.particles.push(new Particle(
+        x + Math.cos(angle) * dist,
+        y + Math.sin(angle) * dist,
+        Math.cos(angle) * speed,
+        Math.sin(angle) * speed,
+        15 + Math.random() * 10,
+        '#ff2244',
+        2 + Math.random() * 3,
+      ));
+    }
+  }
+
+  // 远古之力金色光粒子
+  spawnAncientPowerParticles(x, y, size) {
+    for (let i = 0; i < 8; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 1 + Math.random() * 2;
+      this.particles.push(new Particle(
+        x, y,
+        Math.cos(angle) * speed,
+        Math.sin(angle) * speed,
+        25 + Math.random() * 15,
+        '#ffdd44',
+        3 + Math.random() * 3,
+      ));
+    }
+  }
+
+  // 远古甲胄金色光晕粒子
+  spawnAncientArmorParticles(x, y, size) {
+    for (let i = 0; i < 6; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const dist = size * 0.8;
+      this.particles.push(new Particle(
+        x + Math.cos(angle) * dist,
+        y + Math.sin(angle) * dist,
+        Math.cos(angle) * 0.3,
+        Math.sin(angle) * 0.3 - 0.5,
+        30 + Math.random() * 20,
+        '#ffcc44',
+        2 + Math.random() * 2,
+      ));
+    }
+  }
+
+  // 拟态伪装淡出粒子
+  spawnCamouflageParticles(x, y, size) {
+    for (let i = 0; i < 10; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 0.5 + Math.random();
+      this.particles.push(new Particle(
+        x, y,
+        Math.cos(angle) * speed,
+        Math.sin(angle) * speed,
+        20 + Math.random() * 10,
+        'rgba(180, 220, 255, 0.4)',
+        2 + Math.random() * 3,
+      ));
+    }
+  }
+
+  // 深渊之歌声波粒子
+  spawnAbyssSongParticles(x, y) {
+    for (let ring = 0; ring < 3; ring++) {
+      for (let i = 0; i < 20; i++) {
+        const angle = (i / 20) * Math.PI * 2;
+        const speed = 3 + ring;
+        this.particles.push(new Particle(
+          x + Math.cos(angle) * ring * 20,
+          y + Math.sin(angle) * ring * 20,
+          Math.cos(angle) * speed,
+          Math.sin(angle) * speed,
+          30 + ring * 10,
+          '#44aaff',
+          3 + Math.random() * 2,
+        ));
+      }
+    }
+  }
+
+  // 深海烈焰火焰粒子
+  spawnFlameParticles(x, y, angle, distance) {
+    for (let i = 0; i < 3; i++) {
+      const spread = (Math.random() - 0.5) * 0.4;
+      const dist = Math.random() * distance;
+      const px = x + Math.cos(angle + spread) * dist;
+      const py = y + Math.sin(angle + spread) * dist;
+      const colors = ['#ff4400', '#ff8800', '#ffcc00', '#ff2200'];
+      this.particles.push(new Particle(
+        px, py,
+        Math.cos(angle + spread) * 2 + (Math.random() - 0.5),
+        Math.sin(angle + spread) * 2 + (Math.random() - 0.5),
+        10 + Math.random() * 15,
+        colors[Math.floor(Math.random() * colors.length)],
+        3 + Math.random() * 5,
+      ));
+    }
+  }
+
+  // 巨尾横扫粒子
+  spawnTailWhipParticles(x, y) {
+    for (let i = 0; i < 24; i++) {
+      const angle = (i / 24) * Math.PI * 2;
+      const speed = 3 + Math.random() * 4;
+      this.particles.push(new Particle(
+        x, y,
+        Math.cos(angle) * speed,
+        Math.sin(angle) * speed,
+        20 + Math.random() * 15,
+        '#ffffff',
+        3 + Math.random() * 3,
+      ));
+    }
+  }
+
+  // 暴君威压波纹
+  spawnTyrantAuraParticles(x, y, frame) {
+    const angle = (frame * 0.05) % (Math.PI * 2);
+    const dist = 40 + Math.sin(frame * 0.1) * 20;
+    this.particles.push(new Particle(
+      x + Math.cos(angle) * dist,
+      y + Math.sin(angle) * dist,
+      0, 0,
+      20,
+      'rgba(255, 80, 80, 0.3)',
+      4,
+    ));
+  }
+
+  // 海啸冲锋路径粒子
+  spawnChargeTrail(x, y, angle) {
+    for (let i = 0; i < 5; i++) {
+      const spread = (Math.random() - 0.5) * 0.5;
+      this.particles.push(new Particle(
+        x + Math.cos(angle + spread) * 5,
+        y + Math.sin(angle + spread) * 5,
+        Math.cos(angle) * 2 + (Math.random() - 0.5) * 2,
+        Math.sin(angle) * 2 + (Math.random() - 0.5) * 2,
+        15 + Math.random() * 10,
+        '#44aaff',
+        3 + Math.random() * 3,
+      ));
+    }
+  }
+
+  // 漩涡粒子
+  spawnVortexParticles(cx, cy, radius) {
+    for (let i = 0; i < 4; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const dist = radius * (0.3 + Math.random() * 0.7);
+      const speed = 2 + Math.random() * 2;
+      // 螺旋运动
+      this.particles.push(new Particle(
+        cx + Math.cos(angle) * dist,
+        cy + Math.sin(angle) * dist,
+        Math.cos(angle + Math.PI / 2) * speed - Math.cos(angle) * 0.5,
+        Math.sin(angle + Math.PI / 2) * speed - Math.sin(angle) * 0.5,
+        20 + Math.random() * 15,
+        '#4488ff',
+        2 + Math.random() * 3,
+      ));
+    }
+  }
+
+  // 回声定位声呐粒子
+  spawnEchoLocateParticles(x, y) {
+    for (let i = 0; i < 8; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 1 + Math.random() * 2;
+      this.particles.push(new Particle(
+        x, y,
+        Math.cos(angle) * speed,
+        Math.sin(angle) * speed,
+        25 + Math.random() * 15,
+        'rgba(100, 255, 100, 0.3)',
+        2 + Math.random() * 2,
+      ));
+    }
+  }
+
+  // 气泡护盾粒子
+  spawnBubbleShieldParticles(x, y) {
+    for (let i = 0; i < 10; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 1 + Math.random();
+      this.particles.push(new Particle(
+        x + Math.cos(angle) * 10,
+        y + Math.sin(angle) * 10,
+        Math.cos(angle) * speed,
+        Math.sin(angle) * speed,
+        20 + Math.random() * 10,
+        'rgba(180, 220, 255, 0.5)',
+        3 + Math.random() * 3,
+      ));
+    }
+  }
+
+  // 团队狩猎 - 虎鲸出现粒子
+  spawnAllyAppearParticles(x, y) {
+    for (let i = 0; i < 15; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 1 + Math.random() * 3;
+      this.particles.push(new Particle(
+        x, y,
+        Math.cos(angle) * speed,
+        Math.sin(angle) * speed,
+        20 + Math.random() * 10,
+        '#44ccff',
+        3 + Math.random() * 4,
+      ));
+    }
+  }
+
   update() {
     for (let i = this.particles.length - 1; i >= 0; i--) {
       this.particles[i].update();
       if (!this.particles[i].alive) {
         this.particles.splice(i, 1);
+      }
+    }
+    // 容量限制：超出上限时从最老的粒子开始清除
+    this._enforceCap();
+  }
+
+  // 粒子容量限制（M-3 修复）
+  _enforceCap() {
+    const maxParticles = CONFIG.MAX_PARTICLES || 600;
+    while (this.particles.length > maxParticles) {
+      // 优先清除非文字粒子（保留分数弹出等UI文字）
+      const idx = this.particles.findIndex(p => !p.text);
+      if (idx >= 0) {
+        this.particles.splice(idx, 1);
+      } else {
+        this.particles.shift();
       }
     }
   }
@@ -156,7 +392,6 @@ class ParticleSystem {
         ctx.beginPath();
         ctx.arc(sx, sy, p.size, 0, Math.PI * 2);
         ctx.stroke();
-        // Bubbles have a shine
         ctx.beginPath();
         ctx.arc(sx - p.size * 0.3, sy - p.size * 0.3, p.size * 0.3, 0, Math.PI * 2);
         ctx.fillStyle = 'rgba(255,255,255,0.3)';

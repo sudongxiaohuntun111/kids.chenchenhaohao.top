@@ -5,6 +5,7 @@ const CONFIG = {
   HEIGHT: 750,
   FPS: 60,
   GRAVITY: 0,
+  MAX_PARTICLES: 700,
 };
 
 // ==================== 难度配置 ====================
@@ -336,14 +337,17 @@ const GENERAL_ABILITY_IDS = Object.keys(ABILITIES).filter(id => ABILITIES[id].ge
 // ==================== 猎物类型 ====================
 
 const PREY_TYPES = [
-  { id: 'tiny', name: '小丑鱼苗', size: 18, value: 1, speed: 1.8, color: '#ff8844', edible: true, harmful: false, spawnWeight: 40 },
-  { id: 'small', name: '小黄鱼', size: 26, value: 2, speed: 1.5, color: '#ffcc44', edible: true, harmful: false, spawnWeight: 30 },
-  { id: 'medium', name: '鲷鱼', size: 36, value: 3, speed: 1.2, color: '#ff6688', edible: true, harmful: false, spawnWeight: 20 },
-  { id: 'big', name: '金枪鱼', size: 48, value: 5, speed: 1.5, color: '#4488ff', edible: true, harmful: false, spawnWeight: 10 },
-  { id: 'jellyfish', name: '水母', size: 34, value: 0, speed: 0.6, color: '#cc88ff', edible: false, harmful: true, spawnWeight: 8 },
-  { id: 'puffer', name: '刺豚', size: 30, value: 0, speed: 0.7, color: '#88dd44', edible: false, harmful: true, spawnWeight: 6 },
-  { id: 'turtle', name: '海龟', size: 42, value: 4, speed: 0.8, color: '#66aa55', edible: true, harmful: false, spawnWeight: 8 },
+  // ---- 可食用猎物（size 连续梯度，确保玩家始终有鱼可吃） ----
+  { id: 'micro', name: '浮游小鱼', size: 10, value: 1, speed: 2.0, color: '#aaddff', edible: true, harmful: false, spawnWeight: 35 },
+  { id: 'tiny', name: '小丑鱼苗', size: 16, value: 1, speed: 1.8, color: '#ff8844', edible: true, harmful: false, spawnWeight: 35 },
+  { id: 'small', name: '小黄鱼', size: 24, value: 2, speed: 1.5, color: '#ffcc44', edible: true, harmful: false, spawnWeight: 25 },
+  { id: 'medium', name: '鲷鱼', size: 32, value: 3, speed: 1.2, color: '#ff6688', edible: true, harmful: false, spawnWeight: 18 },
+  { id: 'turtle', name: '小海龟', size: 34, value: 4, speed: 0.8, color: '#66aa55', edible: true, harmful: false, spawnWeight: 8 },
+  { id: 'big', name: '金枪鱼', size: 44, value: 5, speed: 1.5, color: '#4488ff', edible: true, harmful: false, spawnWeight: 10 },
   { id: 'manta', name: '魔鬼鱼', size: 56, value: 6, speed: 1.8, color: '#8866cc', edible: true, harmful: false, spawnWeight: 4 },
+  // ---- 危险生物（不可食用） ----
+  { id: 'puffer', name: '刺豚', size: 28, value: 0, speed: 0.7, color: '#88dd44', edible: false, harmful: true, spawnWeight: 6 },
+  { id: 'jellyfish', name: '水母', size: 32, value: 0, speed: 0.6, color: '#cc88ff', edible: false, harmful: true, spawnWeight: 8 },
 ];
 
 // ==================== 装饰物类型 ====================
@@ -355,3 +359,10 @@ const DECORATION_TYPES = {
   coral: { label: '珊瑚', variants: 2 },
   rock: { label: '岩石', variants: 2 },
 };
+
+// ==================== v2 新增配置 ====================
+
+CONFIG.AUDIO_ENABLED = true;
+
+// 能力激活键
+CONFIG.ABILITY_KEY = 'e';
