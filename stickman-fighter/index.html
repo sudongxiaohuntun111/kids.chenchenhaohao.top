@@ -107,14 +107,27 @@ canvas {
   #mobileControls { max-width: 620px; opacity: 0.9; }
 }
 @media (max-width: 620px) {
-  body { justify-content: start; gap: 8px; }
+  body {
+    justify-content: start;
+    gap: 8px;
+    padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  }
   canvas {
     width: 100%;
-    height: min(calc(100svh - 104px), calc((100vw - 20px) * 0.78), 420px);
+    height: min(calc(100vh - 112px), calc((100vw - 20px) * 0.78), 420px);
     max-height: none;
     border-radius: 10px;
   }
-  #mobileControls { grid-template-columns: 46px 46px 1fr 1fr 58px; gap: 6px; }
+  #mobileControls {
+    position: fixed;
+    left: 10px;
+    right: 10px;
+    bottom: max(10px, env(safe-area-inset-bottom));
+    z-index: 8;
+    width: auto;
+    grid-template-columns: 46px 46px 1fr 1fr 58px;
+    gap: 6px;
+  }
   .control-btn { min-height: 44px; border-radius: 10px; font-size: 13px; }
   #gameHint { display: none; }
 }
