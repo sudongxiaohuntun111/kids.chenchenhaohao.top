@@ -2,29 +2,122 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Stickman Fighter: Arena of Arms</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: #111; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: 'Arial', sans-serif; }
-canvas { border: 2px solid #333; cursor: crosshair; }
+html { height: 100%; background: #101820; }
+body {
+  min-height: 100svh;
+  background:
+    radial-gradient(circle at 18% 14%, rgba(255, 196, 87, 0.18), transparent 28%),
+    radial-gradient(circle at 82% 16%, rgba(83, 196, 255, 0.16), transparent 30%),
+    linear-gradient(135deg, #111927 0%, #17251f 48%, #111018 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+  padding: max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom));
+  font-family: Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: #f7fbff;
+}
+#gameWrap {
+  width: min(100%, 1080px);
+  display: grid;
+  place-items: center;
+  gap: 10px;
+}
+canvas {
+  width: min(100%, calc(100svh * 1.666));
+  max-height: calc(100svh - 112px);
+  aspect-ratio: 5 / 3;
+  height: auto;
+  border: 2px solid rgba(255,255,255,0.18);
+  border-radius: 14px;
+  cursor: crosshair;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(255,255,255,0.08);
+  background: #16202c;
+  touch-action: none;
+}
 #weaponSelect {
-  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(0,0,0,0.92); display: flex; flex-direction: column;
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(circle at 50% 12%, rgba(245,166,35,0.24), transparent 30%),
+    rgba(11, 14, 22, 0.94);
+  display: flex; flex-direction: column;
   align-items: center; justify-content: center; z-index: 10;
+  padding: 28px 16px;
+  overflow-y: auto;
 }
-#weaponSelect h1 { color: #f5a623; font-size: 36px; margin-bottom: 8px; text-shadow: 0 0 20px #f5a623; }
-#weaponSelect p { color: #aaa; font-size: 14px; margin-bottom: 24px; }
-#weaponGrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; max-width: 900px; }
+#weaponSelect h1 {
+  color: #ffd166; font-size: clamp(26px, 6vw, 44px); margin-bottom: 10px;
+  text-shadow: 0 0 24px rgba(255,209,102,0.55);
+  text-align: center;
+}
+#weaponSelect p { color: #c9d4e4; font-size: 14px; margin-bottom: 20px; text-align: center; }
+#weaponGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr)); gap: 12px; width: min(940px, 100%); }
 .weapon-card {
-  background: linear-gradient(135deg, #2a2a3a, #1a1a2a); border: 2px solid #444;
-  border-radius: 10px; padding: 14px 10px; width: 160px; text-align: center;
+  background: linear-gradient(145deg, rgba(38,49,68,0.95), rgba(21,27,42,0.96));
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 12px; padding: 14px 10px; min-height: 120px; text-align: center;
   cursor: pointer; transition: all 0.2s; user-select: none;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.22);
 }
-.weapon-card:hover { border-color: #f5a623; transform: translateY(-4px); box-shadow: 0 6px 20px rgba(245,166,35,0.3); }
+.weapon-card:hover { border-color: #ffd166; transform: translateY(-4px); box-shadow: 0 14px 28px rgba(245,166,35,0.25); }
 .weapon-card .icon { font-size: 32px; margin-bottom: 6px; }
 .weapon-card .name { color: #fff; font-size: 14px; font-weight: bold; margin-bottom: 4px; }
-.weapon-card .stats { color: #999; font-size: 11px; line-height: 1.5; }
-.weapon-card .stats span { color: #f5a623; }
+.weapon-card .stats { color: #aebbd0; font-size: 11px; line-height: 1.5; }
+.weapon-card .stats span { color: #ffd166; }
+#mobileControls {
+  width: min(100%, 720px);
+  display: grid;
+  grid-template-columns: 54px 54px 1fr 1fr 66px;
+  gap: 8px;
+}
+.control-btn {
+  min-height: 48px;
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.06));
+  color: #fff;
+  font-weight: 800;
+  font-size: 15px;
+  box-shadow: 0 8px 18px rgba(0,0,0,0.22);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.control-btn:active,
+.control-btn.active {
+  transform: translateY(2px);
+  background: linear-gradient(180deg, rgba(255,209,102,0.34), rgba(255,109,87,0.22));
+  border-color: rgba(255,209,102,0.64);
+}
+#attackBtn { background: linear-gradient(180deg, rgba(255,92,92,0.72), rgba(129,34,48,0.92)); }
+#blockBtn { background: linear-gradient(180deg, rgba(86,171,255,0.72), rgba(30,66,128,0.92)); }
+#dashBtn { background: linear-gradient(180deg, rgba(110,232,175,0.68), rgba(20,103,83,0.92)); }
+#gameHint {
+  color: rgba(241,246,255,0.72);
+  font-size: 12px;
+  text-align: center;
+}
+@media (hover: hover) and (pointer: fine) {
+  #mobileControls { max-width: 620px; opacity: 0.9; }
+}
+@media (max-width: 620px) {
+  body { justify-content: start; gap: 8px; }
+  canvas {
+    width: 100%;
+    height: min(calc(100svh - 104px), calc((100vw - 20px) * 0.78), 420px);
+    max-height: none;
+    border-radius: 10px;
+  }
+  #mobileControls { grid-template-columns: 46px 46px 1fr 1fr 58px; gap: 6px; }
+  .control-btn { min-height: 44px; border-radius: 10px; font-size: 13px; }
+  #gameHint { display: none; }
+}
 </style>
 </head>
 <body>
@@ -35,7 +128,17 @@ canvas { border: 2px solid #333; cursor: crosshair; }
   <div id="weaponGrid"></div>
 </div>
 
-<canvas id="gameCanvas" width="1000" height="600"></canvas>
+<div id="gameWrap">
+  <canvas id="gameCanvas" width="1000" height="600"></canvas>
+  <div id="mobileControls" aria-label="战斗操作">
+    <button class="control-btn" id="leftBtn" type="button">‹</button>
+    <button class="control-btn" id="rightBtn" type="button">›</button>
+    <button class="control-btn" id="attackBtn" type="button">攻击</button>
+    <button class="control-btn" id="blockBtn" type="button">防御</button>
+    <button class="control-btn" id="dashBtn" type="button">冲刺</button>
+  </div>
+  <div id="gameHint">键盘：A/D 移动，J 攻击，K 防御，L 冲刺。手机直接按下方按钮。</div>
+</div>
 
 <script>
 // ===================== CONSTANTS =====================
@@ -43,27 +146,33 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const W = canvas.width, H = canvas.height;
 
-// Fighter positions - close enough for all weapons to reach
-const PLAYER_X = 430;
-const ENEMY_X = 530;
+// Fighter positions and arena limits
+const PLAYER_START_X = 320;
+const ENEMY_START_X = 680;
+const ARENA_LEFT = 110;
+const ARENA_RIGHT = 890;
 const GROUND_Y = 460;
 const BODY_HEIGHT = 100;
-const FIGHTER_DIST = ENEMY_X - PLAYER_X; // 190
+const BASE_REACH = 58;
+const MOVE_SPEED = 0.24;
+const DASH_SPEED = 0.95;
+const DASH_TIME = 170;
+const DASH_COST = 22;
 
 // ===================== WEAPON DEFINITIONS =====================
 // hitChance: probability factor for reaching the opponent at FIGHTER_DIST
 // Higher range weapons have higher hitChance at this distance
 const WEAPONS = [
-  { id: 'longsword',  name: '长剑',   icon: '🗡️', range: 130, damage: 12, cooldown: 600,  swingArc: 1.4, swingSpeed: 0.08,  activeStart: 0.2, activeEnd: 0.7, trailColor: '#ffcc00', desc: '攻守平衡' },
-  { id: 'dagger',     name: '短刀',       icon: '🔪', range: 110,  damage: 8,  cooldown: 250,  swingArc: 0.8, swingSpeed: 0.06,  activeStart: 0.15,activeEnd: 0.5, trailColor: '#00ffcc', desc: '极快攻速' },
-  { id: 'spear',      name: '长矛',        icon: '🔱', range: 190, damage: 10, cooldown: 750,  swingArc: 0.4, swingSpeed: 0.05,  activeStart: 0.25,activeEnd: 0.65,trailColor: '#00ccff', desc: '一寸长一寸强' },
-  { id: 'battleaxe',  name: '巨斧',   icon: '🪓', range: 120, damage: 20, cooldown: 1000, swingArc: 1.6, swingSpeed: 0.1,   activeStart: 0.2, activeEnd: 0.8, trailColor: '#ff4400', desc: '势大力沉' },
-  { id: 'mace',       name: '狼牙棒',         icon: '🏏', range: 105,  damage: 15, cooldown: 850,  swingArc: 1.1, swingSpeed: 0.09,  activeStart: 0.2, activeEnd: 0.7, trailColor: '#cc8800', desc: '钝击破甲' },
-  { id: 'nunchaku',   name: '双节棍',     icon: '🥢', range: 100,  damage: 7,  cooldown: 200,  swingArc: 2.0, swingSpeed: 0.05,  activeStart: 0.1, activeEnd: 0.5, trailColor: '#ff00ff', desc: '唯快不破' },
-  { id: 'greatsword', name: '大剑',   icon: '⚔️', range: 160, damage: 28, cooldown: 1300, swingArc: 2.2, swingSpeed: 0.12,  activeStart: 0.2, activeEnd: 0.8, trailColor: '#ff0000', desc: '一刀秒杀' },
-  { id: 'dualdagger', name: '双持短刀', icon: '🗡️🗡️',range: 110,  damage: 10, cooldown: 300,  swingArc: 1.0, swingSpeed: 0.055, activeStart: 0.15,activeEnd: 0.5, trailColor: '#00ff88', desc: '左右开弓' },
-  { id: 'glaive',     name: '长柄刀',       icon: '⚜️', range: 170, damage: 16, cooldown: 800,  swingArc: 1.4, swingSpeed: 0.09,  activeStart: 0.2, activeEnd: 0.7, trailColor: '#ff8800', desc: '横扫千军' },
-  { id: 'gauntlet',   name: '拳套',     icon: '🥊', range: 95,  damage: 9,  cooldown: 200,  swingArc: 0.6, swingSpeed: 0.04,  activeStart: 0.1, activeEnd: 0.45,trailColor: '#ffdd00', desc: '自带格挡' }
+  { id: 'longsword',  name: '长剑',   icon: '🗡️', range: 132, damage: 12, cooldown: 560,  stamina: 12, swingArc: 1.4, swingSpeed: 0.075, activeStart: 0.2, activeEnd: 0.7, trailColor: '#ffcc00', desc: '攻守平衡' },
+  { id: 'dagger',     name: '短刀',       icon: '🔪', range: 104, damage: 8,  cooldown: 235,  stamina: 7,  swingArc: 0.8, swingSpeed: 0.06,  activeStart: 0.15,activeEnd: 0.5, trailColor: '#00ffcc', desc: '快攻连击' },
+  { id: 'spear',      name: '长矛',        icon: '🔱', range: 196, damage: 10, cooldown: 680,  stamina: 13, swingArc: 0.4, swingSpeed: 0.05,  activeStart: 0.25,activeEnd: 0.65,trailColor: '#00ccff', desc: '控距强势' },
+  { id: 'battleaxe',  name: '巨斧',   icon: '🪓', range: 124, damage: 21, cooldown: 960,  stamina: 22, swingArc: 1.6, swingSpeed: 0.095, activeStart: 0.2, activeEnd: 0.8, trailColor: '#ff5f3d', desc: '破防重击' },
+  { id: 'mace',       name: '狼牙棒',         icon: '🏏', range: 112, damage: 15, cooldown: 780,  stamina: 17, swingArc: 1.1, swingSpeed: 0.085, activeStart: 0.2, activeEnd: 0.7, trailColor: '#d59a35', desc: '格挡也痛' },
+  { id: 'nunchaku',   name: '双节棍',     icon: '🥢', range: 102, damage: 7,  cooldown: 190,  stamina: 6,  swingArc: 2.0, swingSpeed: 0.05,  activeStart: 0.1, activeEnd: 0.5, trailColor: '#ff4dff', desc: '压制节奏' },
+  { id: 'greatsword', name: '大剑',   icon: '⚔️', range: 164, damage: 29, cooldown: 1220, stamina: 28, swingArc: 2.2, swingSpeed: 0.115, activeStart: 0.2, activeEnd: 0.8, trailColor: '#ff3535', desc: '慢但致命' },
+  { id: 'dualdagger', name: '双持短刀', icon: '🗡️🗡️',range: 108, damage: 10, cooldown: 285,  stamina: 9,  swingArc: 1.0, swingSpeed: 0.055, activeStart: 0.15,activeEnd: 0.5, trailColor: '#00ff88', desc: '左右开弓' },
+  { id: 'glaive',     name: '长柄刀',       icon: '⚜️', range: 176, damage: 16, cooldown: 760,  stamina: 16, swingArc: 1.4, swingSpeed: 0.085, activeStart: 0.2, activeEnd: 0.7, trailColor: '#ff9b2e', desc: '横扫反打' },
+  { id: 'gauntlet',   name: '拳套',     icon: '🥊', range: 94,  damage: 9,  cooldown: 210,  stamina: 7,  swingArc: 0.6, swingSpeed: 0.04,  activeStart: 0.1, activeEnd: 0.45,trailColor: '#ffdd00', desc: '完美格挡' }
 ];
 
 // ===================== GAME STATE =====================
@@ -71,6 +180,13 @@ let gameState = 'SELECT'; // SELECT, FIGHT, GAMEOVER
 let playerWeapon = null, enemyWeapon = null;
 let playerHP = 100, enemyHP = 100;
 const playerMaxHP = 100, enemyMaxHP = 100;
+let playerX = PLAYER_START_X, enemyX = ENEMY_START_X;
+let playerStamina = 100, enemyStamina = 100;
+let playerDashTimer = 0, enemyDashTimer = 0;
+let playerPerfectBlockTimer = 0, enemyPerfectBlockTimer = 0;
+let playerCombo = 0, comboTimer = 0;
+let battleMessage = '选好武器后开打';
+let battleMessageTimer = 0;
 
 let playerAttack = null;  // { progress: 0-1, hasHit: false }
 let enemyAttack = null;
@@ -96,8 +212,9 @@ function buildWeaponUI() {
       <div class="icon">${w.icon}</div>
       <div class="name">${w.name}</div>
       <div class="stats">
-        伤害: <span>${w.damage}</span> | 范围: <span>${w.range}</span><br>
-        攻速: <span>${(1000/w.cooldown).toFixed(1)}次/秒</span> | ${w.desc}
+        伤害 <span>${w.damage}</span> · 范围 <span>${w.range}</span><br>
+        耗力 <span>${w.stamina}</span> · 攻速 <span>${(1000/w.cooldown).toFixed(1)}次/秒</span><br>
+        ${w.desc}
       </div>
     `;
     card.addEventListener('click', () => startGame(w));
@@ -113,6 +230,18 @@ function startGame(weapon) {
 
   playerHP = playerMaxHP;
   enemyHP = enemyMaxHP;
+  playerX = PLAYER_START_X;
+  enemyX = ENEMY_START_X;
+  playerStamina = 100;
+  enemyStamina = 100;
+  playerDashTimer = 0;
+  enemyDashTimer = 0;
+  playerPerfectBlockTimer = 0;
+  enemyPerfectBlockTimer = 0;
+  playerCombo = 0;
+  comboTimer = 0;
+  battleMessage = `${weapon.name} 对 ${enemyWeapon.name}`;
+  battleMessageTimer = 1800;
   playerAttack = null;
   enemyAttack = null;
   playerDefending = false;
@@ -128,6 +257,8 @@ function startGame(weapon) {
 
 // ===================== INPUT =====================
 let mouseDownLeft = false, mouseDownRight = false;
+let moveLeft = false, moveRight = false, dashQueued = false;
+let keyAttackDown = false;
 
 canvas.addEventListener('mousedown', e => {
   if (gameState !== 'FIGHT') return;
@@ -139,28 +270,94 @@ canvas.addEventListener('mouseup', e => {
   if (e.button === 0) mouseDownLeft = false;
   if (e.button === 2) mouseDownRight = false;
 });
+canvas.addEventListener('pointerdown', e => {
+  if (e.pointerType === 'touch' && gameState === 'GAMEOVER' && gameoverTimer <= 0) showWeaponSelect();
+});
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
 canvas.addEventListener('click', () => {
   if (gameState === 'GAMEOVER') {
     if (gameoverTimer > 0) return; // 冷却期内不可点击
-    document.getElementById('weaponSelect').style.display = 'flex';
-    gameState = 'SELECT';
-    gameoverTimer = 0;
+    showWeaponSelect();
   }
+});
+
+function showWeaponSelect() {
+  document.getElementById('weaponSelect').style.display = 'flex';
+  gameState = 'SELECT';
+  gameoverTimer = 0;
+}
+
+function bindHoldButton(id, onDown, onUp) {
+  const btn = document.getElementById(id);
+  const down = e => {
+    e.preventDefault();
+    btn.classList.add('active');
+    onDown();
+  };
+  const up = e => {
+    e.preventDefault();
+    btn.classList.remove('active');
+    onUp();
+  };
+  btn.addEventListener('pointerdown', down);
+  btn.addEventListener('pointerup', up);
+  btn.addEventListener('pointercancel', up);
+  btn.addEventListener('pointerleave', up);
+}
+
+bindHoldButton('leftBtn', () => { moveLeft = true; }, () => { moveLeft = false; });
+bindHoldButton('rightBtn', () => { moveRight = true; }, () => { moveRight = false; });
+bindHoldButton('attackBtn', () => { mouseDownLeft = true; }, () => { mouseDownLeft = false; });
+bindHoldButton('blockBtn', () => { mouseDownRight = true; }, () => { mouseDownRight = false; });
+bindHoldButton('dashBtn', () => { dashQueued = true; }, () => {});
+
+window.addEventListener('keydown', e => {
+  const key = e.key.toLowerCase();
+  if (key === 'a' || e.key === 'ArrowLeft') moveLeft = true;
+  if (key === 'd' || e.key === 'ArrowRight') moveRight = true;
+  if (key === 'j' || e.key === ' ') {
+    mouseDownLeft = true;
+    keyAttackDown = true;
+    e.preventDefault();
+  }
+  if (key === 'k') mouseDownRight = true;
+  if (key === 'l') dashQueued = true;
+});
+
+window.addEventListener('keyup', e => {
+  const key = e.key.toLowerCase();
+  if (key === 'a' || e.key === 'ArrowLeft') moveLeft = false;
+  if (key === 'd' || e.key === 'ArrowRight') moveRight = false;
+  if (key === 'j' || e.key === ' ') {
+    mouseDownLeft = false;
+    keyAttackDown = false;
+  }
+  if (key === 'k') mouseDownRight = false;
 });
 
 // ===================== DRAWING: SCENE =====================
 function drawBoxingRing() {
   const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
-  bgGrad.addColorStop(0, '#1a0a2e');
-  bgGrad.addColorStop(0.5, '#2d1b4e');
-  bgGrad.addColorStop(1, '#0a0a15');
+  bgGrad.addColorStop(0, '#20395a');
+  bgGrad.addColorStop(0.42, '#173041');
+  bgGrad.addColorStop(1, '#101820');
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, W, H);
 
+  // Neon arena backdrop
+  ctx.save();
+  for (let i = 0; i < 9; i++) {
+    ctx.strokeStyle = `rgba(255, 209, 102, ${0.08 - i * 0.006})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(W / 2, GROUND_Y + 25, 120 + i * 46, Math.PI, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
+
   // Audience silhouettes
-  ctx.fillStyle = '#0d0d1a';
+  ctx.fillStyle = 'rgba(8,14,23,0.78)';
   for (let i = 0; i < 35; i++) {
     let ax = 40 + i * 28 + Math.sin(i * 3.7) * 8;
     let ay = 100 + Math.sin(i * 2.1) * 25;
@@ -170,7 +367,7 @@ function drawBoxingRing() {
 
   // Spotlights
   ctx.save();
-  ctx.globalAlpha = 0.06;
+  ctx.globalAlpha = 0.1;
   ctx.fillStyle = '#fff';
   ctx.beginPath(); ctx.moveTo(120, 0); ctx.lineTo(220, H); ctx.lineTo(20, H); ctx.closePath(); ctx.fill();
   ctx.beginPath(); ctx.moveTo(W-120, 0); ctx.lineTo(W-220, H); ctx.lineTo(W-20, H); ctx.closePath(); ctx.fill();
@@ -178,13 +375,14 @@ function drawBoxingRing() {
 
   // Ring floor
   const floorGrad = ctx.createLinearGradient(0, GROUND_Y + 40, 0, H);
-  floorGrad.addColorStop(0, '#4a3520');
-  floorGrad.addColorStop(1, '#2a1a0a');
+  floorGrad.addColorStop(0, '#72502d');
+  floorGrad.addColorStop(0.45, '#4b3828');
+  floorGrad.addColorStop(1, '#202734');
   ctx.fillStyle = floorGrad;
   ctx.fillRect(40, GROUND_Y + 40, W - 80, H - GROUND_Y - 40);
 
   // Ring floor lines
-  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
   ctx.lineWidth = 1;
   for (let x = 60; x < W - 60; x += 35) {
     ctx.beginPath(); ctx.moveTo(x, GROUND_Y + 40); ctx.lineTo(x, H); ctx.stroke();
@@ -193,9 +391,9 @@ function drawBoxingRing() {
   // Ring posts
   const posts = [60, W - 60];
   posts.forEach(px => {
-    ctx.fillStyle = '#666';
+    ctx.fillStyle = '#2c3546';
     ctx.fillRect(px - 5, GROUND_Y - 30, 10, 80);
-    ctx.fillStyle = '#f5a623';
+    ctx.fillStyle = '#ffd166';
     ctx.beginPath(); ctx.arc(px, GROUND_Y - 34, 8, 0, Math.PI * 2); ctx.fill();
     ctx.strokeStyle = '#333'; ctx.lineWidth = 1; ctx.stroke();
   });
@@ -209,9 +407,14 @@ function drawBoxingRing() {
   }
 
   // Ring edge
-  ctx.strokeStyle = '#f5a623';
+  ctx.strokeStyle = '#ffd166';
   ctx.lineWidth = 2;
   ctx.beginPath(); ctx.moveTo(60, GROUND_Y + 40); ctx.lineTo(W - 60, GROUND_Y + 40); ctx.stroke();
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.setLineDash([8, 10]);
+  ctx.beginPath(); ctx.moveTo(ARENA_LEFT, GROUND_Y + 42); ctx.lineTo(ARENA_RIGHT, GROUND_Y + 42); ctx.stroke();
+  ctx.setLineDash([]);
 }
 
 function drawSilhouette(x, y, s) {
@@ -269,6 +472,7 @@ function drawStickman(cx, gy, colors, isPlayer, weapon, attacking, defending, at
 
   ctx.save();
   ctx.translate(cx, 0);
+  if (!isPlayer) ctx.scale(-1, 1);
   ctx.rotate(bodyTilt * Math.PI / 180);
 
   // Legs
@@ -445,6 +649,7 @@ function drawWeaponTrail(cx, gy, weapon, attackProgress, isPlayer) {
 
   ctx.save();
   ctx.translate(cx, torsoTop);
+  if (!isPlayer) ctx.scale(-1, 1);
 
   // Swing arc
   ctx.strokeStyle = weapon.trailColor;
@@ -488,6 +693,68 @@ function checkHit(attackerX, defenderX, weapon, attackProgress) {
   if (dist > maxReach) return false;
 
   return true;
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function setBattleMessage(text, time = 900) {
+  battleMessage = text;
+  battleMessageTimer = time;
+}
+
+function canStartAttack(weapon, lastAttackTime, stamina) {
+  return gameTime - lastAttackTime > weapon.cooldown && stamina >= weapon.stamina;
+}
+
+function startPlayerAttack() {
+  if (playerDefending || playerAttack || !canStartAttack(playerWeapon, lastPlayerAttackTime, playerStamina)) return;
+  playerAttack = { progress: 0, hasHit: false };
+  playerStamina -= playerWeapon.stamina;
+  lastPlayerAttackTime = gameTime;
+}
+
+function startEnemyAttack() {
+  if (enemyDefending || enemyAttack || !canStartAttack(enemyWeapon, lastEnemyAttackTime, enemyStamina)) return;
+  enemyAttack = { progress: 0, hasHit: false };
+  enemyStamina -= enemyWeapon.stamina;
+  lastEnemyAttackTime = gameTime;
+}
+
+function tryDash(isPlayer) {
+  if (isPlayer) {
+    if (playerDashTimer > 0 || playerStamina < DASH_COST || playerAttack) return;
+    playerStamina -= DASH_COST;
+    playerDashTimer = DASH_TIME;
+    setBattleMessage('冲刺调整距离');
+  } else {
+    if (enemyDashTimer > 0 || enemyStamina < DASH_COST || enemyAttack) return;
+    enemyStamina -= DASH_COST;
+    enemyDashTimer = DASH_TIME;
+  }
+}
+
+function applyDamage(target, weapon, targetDefending, perfectTimer, comboBonus = 1) {
+  const baseDamage = Math.round(weapon.damage * comboBonus);
+  if (targetDefending) {
+    if (perfectTimer > 0) {
+      addHitEffect(target === 'enemy' ? enemyX : playerX, GROUND_Y - BODY_HEIGHT / 2, 0, 'perfect');
+      addScreenShake(5);
+      return { damage: 0, blocked: true, perfect: true };
+    }
+    const guardFactor = weapon.id === 'mace' || weapon.id === 'battleaxe' ? 0.34 : 0.18;
+    const reducedDmg = Math.max(1, Math.ceil(baseDamage * guardFactor));
+    if (target === 'enemy') enemyHP -= reducedDmg; else playerHP -= reducedDmg;
+    addHitEffect(target === 'enemy' ? enemyX : playerX, GROUND_Y - BODY_HEIGHT / 2, reducedDmg, 'blocked');
+    addScreenShake(4);
+    return { damage: reducedDmg, blocked: true, perfect: false };
+  }
+
+  if (target === 'enemy') enemyHP -= baseDamage; else playerHP -= baseDamage;
+  addHitEffect(target === 'enemy' ? enemyX : playerX, GROUND_Y - BODY_HEIGHT / 2, baseDamage, 'hit');
+  addScreenShake(8 + Math.min(10, baseDamage * 0.35));
+  return { damage: baseDamage, blocked: false, perfect: false };
 }
 
 // ===================== HIT EFFECTS =====================
@@ -535,13 +802,19 @@ function drawHitEffects() {
       ctx.font = `bold ${20 + 8 * (1 - t)}px Arial`;
       ctx.textAlign = 'center';
       ctx.fillText(`-${e.damage}`, 0, -22 - 22 * t);
-    } else if (e.type === 'blocked') {
-      ctx.strokeStyle = `rgba(100, 180, 255, ${1 - t})`;
+    } else if (e.type === 'blocked' || e.type === 'perfect') {
+      const perfect = e.type === 'perfect';
+      ctx.strokeStyle = perfect ? `rgba(255, 230, 120, ${1 - t})` : `rgba(100, 180, 255, ${1 - t})`;
       ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(0, 0, 22 + 12 * t, 0, Math.PI * 2); ctx.stroke();
-      ctx.fillStyle = `rgba(150, 200, 255, ${(1 - t) * 0.3})`;
+      ctx.fillStyle = perfect ? `rgba(255, 225, 120, ${(1 - t) * 0.26})` : `rgba(150, 200, 255, ${(1 - t) * 0.3})`;
       ctx.fill();
-      if (e.damage > 0) {
+      if (perfect) {
+        ctx.fillStyle = `rgba(255, 245, 190, ${1 - t})`;
+        ctx.font = `bold 18px Arial`;
+        ctx.textAlign = 'center';
+        ctx.fillText('PERFECT!', 0, -32);
+      } else if (e.damage > 0) {
         ctx.fillStyle = `rgba(200, 200, 255, ${1 - t})`;
         ctx.font = `bold 16px Arial`;
         ctx.textAlign = 'center';
@@ -559,58 +832,100 @@ function drawHitEffects() {
 
 // ===================== HUD =====================
 function drawHUD() {
-  ctx.fillStyle = 'rgba(0,0,0,0.65)';
-  ctx.fillRect(15, 12, 340, 48);
-  ctx.fillRect(W - 355, 12, 340, 48);
+  ctx.fillStyle = 'rgba(11,16,26,0.74)';
+  roundRect(15, 12, 350, 68, 14, true);
+  roundRect(W - 365, 12, 350, 68, 14, true);
 
   // Player HP bar
   let pPct = Math.max(0, playerHP / playerMaxHP);
   ctx.fillStyle = '#222';
-  ctx.fillRect(25, 19, 320, 16);
+  ctx.fillRect(25, 21, 320, 16);
   let pGrad = ctx.createLinearGradient(25, 0, 345, 0);
   pGrad.addColorStop(0, '#00dd44');
   pGrad.addColorStop(1, '#44ff88');
   ctx.fillStyle = pGrad;
-  ctx.fillRect(25, 19, 320 * pPct, 16);
+  ctx.fillRect(25, 21, 320 * pPct, 16);
   ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
-  ctx.strokeRect(25, 19, 320, 16);
+  ctx.strokeRect(25, 21, 320, 16);
+
+  ctx.fillStyle = '#17202f';
+  ctx.fillRect(25, 44, 320, 8);
+  ctx.fillStyle = '#ffd166';
+  ctx.fillRect(25, 44, 320 * (playerStamina / 100), 8);
 
   // Enemy HP bar
   let ePct = Math.max(0, enemyHP / enemyMaxHP);
   ctx.fillStyle = '#222';
-  ctx.fillRect(W - 345, 19, 320, 16);
+  ctx.fillRect(W - 345, 21, 320, 16);
   let eGrad = ctx.createLinearGradient(W - 345, 0, W - 25, 0);
   eGrad.addColorStop(0, '#8844ff');
   eGrad.addColorStop(1, '#ff4488');
   ctx.fillStyle = eGrad;
-  ctx.fillRect(W - 345 + 320 * (1 - ePct), 19, 320 * ePct, 16);
-  ctx.strokeRect(W - 345, 19, 320, 16);
+  ctx.fillRect(W - 345 + 320 * (1 - ePct), 21, 320 * ePct, 16);
+  ctx.strokeRect(W - 345, 21, 320, 16);
+
+  ctx.fillStyle = '#17202f';
+  ctx.fillRect(W - 345, 44, 320, 8);
+  ctx.fillStyle = '#ff8fbc';
+  ctx.fillRect(W - 345 + 320 * (1 - enemyStamina / 100), 44, 320 * (enemyStamina / 100), 8);
 
   // Labels
   ctx.fillStyle = '#fff';
   ctx.font = 'bold 13px Arial';
   ctx.textAlign = 'left';
-  ctx.fillText(`我方 [${playerWeapon.name}]`, 30, 52);
+  ctx.fillText(`我方 [${playerWeapon.name}]`, 30, 70);
   ctx.textAlign = 'right';
-  ctx.fillText(`[${enemyWeapon.name}] 敌方 AI`, W - 30, 52);
+  ctx.fillText(`[${enemyWeapon.name}] 敌方 AI`, W - 30, 70);
 
   ctx.font = '11px Arial';
   ctx.textAlign = 'left';
   ctx.fillStyle = '#ccc';
-  ctx.fillText(`HP: ${Math.ceil(playerHP)}/${playerMaxHP}`, 30, 32);
+  ctx.fillText(`HP ${Math.ceil(playerHP)}  SP ${Math.floor(playerStamina)}`, 30, 34);
   ctx.textAlign = 'right';
-  ctx.fillText(`${Math.ceil(enemyHP)}/${enemyMaxHP}`, W - 30, 32);
+  ctx.fillText(`HP ${Math.ceil(enemyHP)}  SP ${Math.floor(enemyStamina)}`, W - 30, 34);
 
   // VS
   ctx.textAlign = 'center';
   ctx.font = 'bold 22px Arial';
-  ctx.fillStyle = '#f5a623';
+  ctx.fillStyle = '#ffd166';
   ctx.fillText('VS', W / 2, 40);
+
+  ctx.font = 'bold 14px Arial';
+  ctx.fillStyle = '#d7f7ff';
+  ctx.fillText(`距离 ${Math.round(Math.abs(enemyX - playerX))}`, W / 2, 62);
+
+  if (playerCombo > 1 && comboTimer > 0) {
+    ctx.fillStyle = '#ffd166';
+    ctx.font = 'bold 22px Arial';
+    ctx.fillText(`${playerCombo} HIT`, W / 2, 98);
+  }
+
+  if (battleMessageTimer > 0) {
+    ctx.fillStyle = 'rgba(8,12,20,0.58)';
+    roundRect(W / 2 - 150, 108, 300, 34, 17, true);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 15px Arial';
+    ctx.fillText(battleMessage, W / 2, 131);
+  }
 
   // Controls
   ctx.font = '11px Arial';
-  ctx.fillStyle = '#555';
-  ctx.fillText('左键: 攻击  |  右键: 防御', W / 2, H - 8);
+  ctx.fillStyle = 'rgba(255,255,255,0.58)';
+  ctx.fillText('A/D移动 · J/按钮攻击 · K/按钮防御 · L/按钮冲刺', W / 2, H - 10);
+}
+
+function roundRect(x, y, w, h, r, fill) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  if (fill) ctx.fill(); else ctx.stroke();
 }
 
 // ===================== GAME OVER =====================
@@ -652,11 +967,26 @@ function updateAI(dt) {
   if (gameState !== 'FIGHT') return;
 
   aiDecisionTimer += dt;
+  const dist = Math.abs(enemyX - playerX);
+  const preferred = BASE_REACH + enemyWeapon.range * 0.72;
+  let enemyMove = 0;
+
+  if (!enemyAttack && !enemyDefending && enemyDashTimer <= 0) {
+    if (dist > preferred + 24) enemyMove = -1;
+    if (dist < Math.max(105, preferred - 50)) enemyMove = 1;
+    enemyX += enemyMove * MOVE_SPEED * dt;
+  }
+
+  if (dist > preferred + 150 && enemyStamina > 55 && Math.random() < 0.008 * (dt / 16)) {
+    tryDash(false);
+  }
 
   // If player is attacking, consider defending
-  if (playerAttack && playerAttack.progress < 0.5 && !enemyDefending && !enemyAttack) {
-    if (Math.random() < 0.02 * (dt / 16)) {
+  if (playerAttack && playerAttack.progress < 0.5 && !enemyDefending && !enemyAttack && enemyStamina > 12) {
+    if (dist < BASE_REACH + playerWeapon.range + 26 && Math.random() < 0.035 * (dt / 16)) {
       enemyDefending = true;
+      enemyPerfectBlockTimer = 180;
+      enemyStamina -= 8;
       aiDefendTimer = 600 + Math.random() * 400;
     }
   }
@@ -671,14 +1001,11 @@ function updateAI(dt) {
   }
 
   // Attack decision
-  if (aiDecisionTimer > 500 + Math.random() * 700) {
+  if (aiDecisionTimer > 300 + Math.random() * 560) {
     aiDecisionTimer = 0;
 
-    if (!enemyAttack && !enemyDefending && gameTime - lastEnemyAttackTime > enemyWeapon.cooldown) {
-      if (Math.random() < 0.55) {
-        enemyAttack = { progress: 0, hasHit: false };
-        lastEnemyAttackTime = gameTime;
-      }
+    if (!enemyAttack && !enemyDefending && dist < BASE_REACH + enemyWeapon.range + 34) {
+      if (Math.random() < 0.64) startEnemyAttack();
     }
   }
 
@@ -695,20 +1022,55 @@ function updateAI(dt) {
 function update(dt) {
   if (gameState === 'GAMEOVER') {
     gameoverTimer -= dt;
+    updateHitEffects(dt);
     return;
   }
   if (gameState !== 'FIGHT') return;
 
   gameTime += dt;
+  battleMessageTimer = Math.max(0, battleMessageTimer - dt);
+  comboTimer = Math.max(0, comboTimer - dt);
+  if (comboTimer <= 0) playerCombo = 0;
 
-  // Player attack input
-  if (mouseDownLeft && !playerDefending && !playerAttack && gameTime - lastPlayerAttackTime > playerWeapon.cooldown) {
-    playerAttack = { progress: 0, hasHit: false };
-    lastPlayerAttackTime = gameTime;
+  playerStamina = clamp(playerStamina + dt * (playerDefending ? 0.012 : 0.032), 0, 100);
+  enemyStamina = clamp(enemyStamina + dt * (enemyDefending ? 0.01 : 0.028), 0, 100);
+  playerPerfectBlockTimer = Math.max(0, playerPerfectBlockTimer - dt);
+  enemyPerfectBlockTimer = Math.max(0, enemyPerfectBlockTimer - dt);
+
+  if (dashQueued) {
+    tryDash(true);
+    dashQueued = false;
   }
 
-  // Player defend
-  playerDefending = mouseDownRight && !playerAttack;
+  if (playerDashTimer > 0) {
+    const dir = moveLeft ? -1 : 1;
+    playerX += dir * DASH_SPEED * dt;
+    playerDashTimer -= dt;
+  } else if (!playerAttack && !playerDefending) {
+    playerX += (moveRight ? 1 : 0) * MOVE_SPEED * dt;
+    playerX -= (moveLeft ? 1 : 0) * MOVE_SPEED * dt;
+  }
+
+  if (enemyDashTimer > 0) {
+    const dir = Math.abs(enemyX - playerX) > BASE_REACH + enemyWeapon.range ? -1 : 1;
+    enemyX += dir * DASH_SPEED * dt;
+    enemyDashTimer -= dt;
+  }
+
+  playerX = clamp(playerX, ARENA_LEFT, enemyX - 78);
+  enemyX = clamp(enemyX, playerX + 78, ARENA_RIGHT);
+
+  if (mouseDownLeft) startPlayerAttack();
+
+  const wasDefending = playerDefending;
+  playerDefending = mouseDownRight && !playerAttack && playerStamina > 2;
+  if (playerDefending) {
+    playerStamina = clamp(playerStamina - dt * 0.018, 0, 100);
+    if (!wasDefending) {
+      playerPerfectBlockTimer = playerWeapon.id === 'gauntlet' ? 320 : 210;
+      setBattleMessage('精准格挡窗口');
+    }
+  }
 
   // Update player attack animation & hit check
   if (playerAttack) {
@@ -718,22 +1080,21 @@ function update(dt) {
     if (!playerAttack.hasHit &&
         playerAttack.progress >= playerWeapon.activeStart &&
         playerAttack.progress <= playerWeapon.activeEnd) {
-      if (checkHit(PLAYER_X, ENEMY_X, playerWeapon, playerAttack.progress)) {
-        if (enemyDefending) {
-          if (enemyWeapon.id === 'gauntlet') {
-            addHitEffect(ENEMY_X, GROUND_Y - BODY_HEIGHT / 2, 0, 'blocked');
-          } else {
-            let reducedDmg = Math.ceil(playerWeapon.damage * 0.15);
-            enemyHP -= reducedDmg;
-            addHitEffect(ENEMY_X, GROUND_Y - BODY_HEIGHT / 2, reducedDmg, 'blocked');
-            addScreenShake(4);
-          }
+      if (checkHit(playerX, enemyX, playerWeapon, playerAttack.progress)) {
+        const comboBonus = 1 + Math.min(0.3, playerCombo * 0.06);
+        const result = applyDamage('enemy', playerWeapon, enemyDefending, enemyPerfectBlockTimer, comboBonus);
+        if (result.perfect) {
+          setBattleMessage('敌方完美格挡');
+          playerCombo = 0;
         } else {
-          enemyHP -= playerWeapon.damage;
-          addHitEffect(ENEMY_X, GROUND_Y - BODY_HEIGHT / 2, playerWeapon.damage, 'hit');
-          addScreenShake(10);
+          playerCombo += result.blocked ? 0 : 1;
+          comboTimer = 1500;
+          setBattleMessage(result.blocked ? '被挡住了' : `${playerCombo} 连击`);
         }
         playerAttack.hasHit = true;
+      } else if (playerAttack.progress > playerWeapon.activeEnd && !playerAttack.hasHit) {
+        playerAttack.hasHit = true;
+        setBattleMessage('距离不够，打空了');
       }
     }
 
@@ -746,26 +1107,23 @@ function update(dt) {
   if (enemyAttack && !enemyAttack.hasHit &&
       enemyAttack.progress >= enemyWeapon.activeStart &&
       enemyAttack.progress <= enemyWeapon.activeEnd) {
-    if (checkHit(ENEMY_X, PLAYER_X, enemyWeapon, enemyAttack.progress)) {
-      if (playerDefending) {
-        if (playerWeapon.id === 'gauntlet') {
-          addHitEffect(PLAYER_X, GROUND_Y - BODY_HEIGHT / 2, 0, 'blocked');
-        } else {
-          let reducedDmg = Math.ceil(enemyWeapon.damage * 0.15);
-          playerHP -= reducedDmg;
-          addHitEffect(PLAYER_X, GROUND_Y - BODY_HEIGHT / 2, reducedDmg, 'blocked');
-          addScreenShake(4);
-        }
+    if (checkHit(enemyX, playerX, enemyWeapon, enemyAttack.progress)) {
+      const result = applyDamage('player', enemyWeapon, playerDefending, playerPerfectBlockTimer);
+      if (result.perfect) {
+        setBattleMessage('完美格挡！反击！', 1200);
+        playerStamina = clamp(playerStamina + 16, 0, 100);
+        lastPlayerAttackTime = Math.max(0, lastPlayerAttackTime - 320);
       } else {
-        playerHP -= enemyWeapon.damage;
-        addHitEffect(PLAYER_X, GROUND_Y - BODY_HEIGHT / 2, enemyWeapon.damage, 'hit');
-        addScreenShake(10);
+        setBattleMessage(result.blocked ? '防住了部分伤害' : '被击中');
+        playerCombo = 0;
       }
       enemyAttack.hasHit = true;
     }
   }
 
   updateAI(dt);
+  playerX = clamp(playerX, ARENA_LEFT, enemyX - 78);
+  enemyX = clamp(enemyX, playerX + 78, ARENA_RIGHT);
   updateHitEffects(dt);
 
   // Screen shake
@@ -785,6 +1143,7 @@ function update(dt) {
     enemyHP = Math.max(0, enemyHP);
     gameState = 'GAMEOVER';
     gameoverTimer = 2000; // 2秒冷却
+    setBattleMessage(enemyHP <= 0 ? '胜利' : '败北', 2000);
   }
 }
 
@@ -810,21 +1169,21 @@ function render() {
     };
 
     // Draw player
-    drawStickman(PLAYER_X, GROUND_Y, playerColors, true, playerWeapon,
+    drawStickman(playerX, GROUND_Y, playerColors, true, playerWeapon,
       !!playerAttack, playerDefending, playerAttack ? playerAttack.progress : null, gameTime);
 
     // Draw player weapon trail
     if (playerAttack) {
-      drawWeaponTrail(PLAYER_X, GROUND_Y, playerWeapon, playerAttack.progress, true);
+      drawWeaponTrail(playerX, GROUND_Y, playerWeapon, playerAttack.progress, true);
     }
 
     // Draw enemy
-    drawStickman(ENEMY_X, GROUND_Y, enemyColors, false, enemyWeapon,
+    drawStickman(enemyX, GROUND_Y, enemyColors, false, enemyWeapon,
       !!enemyAttack, enemyDefending, enemyAttack ? enemyAttack.progress : null, gameTime);
 
     // Draw enemy weapon trail
     if (enemyAttack) {
-      drawWeaponTrail(ENEMY_X, GROUND_Y, enemyWeapon, enemyAttack.progress, false);
+      drawWeaponTrail(enemyX, GROUND_Y, enemyWeapon, enemyAttack.progress, false);
     }
 
     // Hit effects
