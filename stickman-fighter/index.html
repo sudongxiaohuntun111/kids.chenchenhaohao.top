@@ -181,27 +181,20 @@ function loadSpriteSheets() {
   charImg.onload = () => { spriteImages.characters = charImg; checkLoaded(); };
   charImg.onerror = () => { spriteImages.charError = true; checkLoaded(); };
   charImg.src = 'images/characters.png';
-
   const wpnImg = new Image();
   wpnImg.crossOrigin = 'anonymous';
   wpnImg.onload = () => { spriteImages.weapons = wpnImg; checkLoaded(); };
   wpnImg.onerror = () => { spriteImages.wpnError = true; checkLoaded(); };
   wpnImg.src = 'images/weapons.png';
 }
-
 function checkLoaded() {
   if (spriteImages.characters || spriteImages.charError) {
-    if (spriteImages.weapons || spriteImages.wpnError) {
-      spriteImages.loaded = true;
-    }
+    if (spriteImages.weapons || spriteImages.wpnError) { spriteImages.loaded = true; }
   }
 }
 loadSpriteSheets();
-
-const CHAR_FRAME_W = 120;
-const CHAR_FRAME_H = 120;
-const WPN_FRAME_W = 100;
-const WPN_FRAME_H = 60;
+const CHAR_FRAME_W = 120; const CHAR_FRAME_H = 120;
+const WPN_FRAME_W = 100; const WPN_FRAME_H = 60;
 
 
 // ===================== WEAPON DEFINITIONS =====================
@@ -219,6 +212,28 @@ const WEAPONS = [
   { id: 'glaive',     name: '长柄刀',       icon: '⚜️', range: 176, damage: 16, cooldown: 760,  stamina: 16, swingArc: 1.4, swingSpeed: 0.085, activeStart: 0.2, activeEnd: 0.7, trailColor: '#ff9b2e', desc: '横扫反打' },
   { id: 'gauntlet',   name: '拳套',     icon: '🥊', range: 94,  damage: 9,  cooldown: 210,  stamina: 7,  swingArc: 0.6, swingSpeed: 0.04,  activeStart: 0.1, activeEnd: 0.45,trailColor: '#ffdd00', desc: '完美格挡' }
 ];
+
+// ===================== WEAPON IMAGE CACHE =====================
+const weaponImages = {};
+function preloadWeaponImages() {
+  return new Promise((resolve) => {
+    let loaded = 0;
+    const total = WEAPONS.length;
+    WEAPONS.forEach(w => {
+      const img = new Image();
+      img.onload = () => {
+        loaded++;
+        if (loaded >= total) resolve();
+      };
+      img.onerror = () => {
+        loaded++;
+        if (loaded >= total) resolve();
+      };
+      img.src = 'assets/weapons/' + w.id + '.png';
+      weaponImages[w.id] = img;
+    });
+  });
+}
 
 // ===================== GAME STATE =====================
 let gameState = 'SELECT'; // SELECT, FIGHT, GAMEOVER
@@ -265,6 +280,7 @@ function buildWeaponUI() {
     card.addEventListener('click', () => startGame(w));
     grid.appendChild(card);
   });
+  setTimeout(drawWeaponPreviews, 300);
 }
 
 function startGame(weapon) {
@@ -382,57 +398,29 @@ window.addEventListener('keyup', e => {
 });
 
 // ===================== DRAWING: SPRITE HELPERS =====================
-
 const WEAPON_GRID = {
-  longsword:  { row: 0, col: 0 },
-  dagger:     { row: 0, col: 1 },
-  spear:      { row: 0, col: 2 },
-  battleaxe:  { row: 0, col: 3 },
-  mace:       { row: 0, col: 4 },
-  nunchaku:   { row: 1, col: 0 },
-  greatsword: { row: 1, col: 1 },
-  dualdagger: { row: 1, col: 2 },
-  glaive:     { row: 1, col: 3 },
-  gauntlet:   { row: 1, col: 4 },
+  longsword:{row:0,col:0}, dagger:{row:0,col:1}, spear:{row:0,col:2},
+  battleaxe:{row:0,col:3}, mace:{row:0,col:4}, nunchaku:{row:1,col:0},
+  greatsword:{row:1,col:1}, dualdagger:{row:1,col:2}, glaive:{row:1,col:3}, gauntlet:{row:1,col:4}
 };
-
 function drawWeaponPreviewOnCanvas(canvasEl, weaponId) {
   if (!spriteImages.weapons) return;
-  const gridPos = WEAPON_GRID[weaponId];
-  if (!gridPos) return;
-  const wpCtx = canvasEl.getContext('2d');
-  const sx = gridPos.col * WPN_FRAME_W;
-  const sy = gridPos.row * WPN_FRAME_H;
-  wpCtx.clearRect(0, 0, canvasEl.width, canvasEl.height);
-  wpCtx.drawImage(spriteImages.weapons, sx, sy, WPN_FRAME_W, WPN_FRAME_H, 0, 0, canvasEl.width, canvasEl.height);
+  const g = WEAPON_GRID[weaponId]; if (!g) return;
+  const c = canvasEl.getContext('2d');
+  c.clearRect(0, 0, canvasEl.width, canvasEl.height);
+  c.drawImage(spriteImages.weapons, g.col*WPN_FRAME_W, g.row*WPN_FRAME_H, WPN_FRAME_W, WPN_FRAME_H, 0, 0, canvasEl.width, canvasEl.height);
 }
-
 function drawWeaponPreviews() {
-  const canvases = document.querySelectorAll('.weapon-preview');
-  canvases.forEach(c => {
-    const weaponId = c.dataset.weapon;
-    if (weaponId) drawWeaponPreviewOnCanvas(c, weaponId);
-  });
+  document.querySelectorAll('.weapon-preview').forEach(c => { if(c.dataset.weapon) drawWeaponPreviewOnCanvas(c, c.dataset.weapon); });
 }
-
-function drawWeaponSprite(handX, handY, weapon, isPlayer, time) {
+function drawWeaponSprite(handX, handY, weapon, isPlayer) {
   if (!spriteImages.weapons) return false;
-  const gridPos = WEAPON_GRID[weapon.id];
-  if (!gridPos) return false;
-
-  ctx.save();
-  ctx.translate(handX, handY);
-  if (!isPlayer) ctx.scale(-1, 1);
-  ctx.rotate(-0.4);
-
-  const sx = gridPos.col * WPN_FRAME_W;
-  const sy = gridPos.row * WPN_FRAME_H;
-  const scale = 0.7;
-  const dw = WPN_FRAME_W * scale;
-  const dh = WPN_FRAME_H * scale;
-  ctx.drawImage(spriteImages.weapons, sx, sy, WPN_FRAME_W, WPN_FRAME_H, -dw/2, -dh/2, dw, dh);
-  ctx.restore();
-  return true;
+  const g = WEAPON_GRID[weapon.id]; if (!g) return false;
+  ctx.save(); ctx.translate(handX, handY);
+  if (!isPlayer) ctx.scale(-1, 1); ctx.rotate(-0.4);
+  const s = 0.7, dw = WPN_FRAME_W*s, dh = WPN_FRAME_H*s;
+  ctx.drawImage(spriteImages.weapons, g.col*WPN_FRAME_W, g.row*WPN_FRAME_H, WPN_FRAME_W, WPN_FRAME_H, -dw/2, -dh/2, dw, dh);
+  ctx.restore(); return true;
 }
 
 // ===================== DRAWING: SCENE =====================
@@ -630,104 +618,29 @@ function drawStickman(cx, gy, colors, isPlayer, weapon, attacking, defending, at
 }
 
 function drawWeaponAt(handX, handY, weapon, isPlayer, time) {
-  // Try sprite sheet first
-  if (drawWeaponSprite(handX, handY, weapon, isPlayer, time)) return;
-
-  // Fallback: canvas line drawing (original)
+  if (drawWeaponSprite(handX, handY, weapon, isPlayer)) return;
   ctx.save();
   ctx.translate(handX, handY);
 
-  const c = isPlayer ? weapon.trailColor : '#8844ff';
-  ctx.strokeStyle = c;
-  ctx.fillStyle = c;
-  ctx.lineWidth = 3;
-  ctx.lineCap = 'round';
+  const img = weaponImages[weapon.id];
+  if (img && img.complete && img.naturalWidth > 0) {
+    // Handle vertical offset as fraction of height (per-weapon data from sprite analysis)
+    const handleOffsets = {
+      longsword: 0.936, dagger: 0.119, spear: 0.972,
+      battleaxe: 0.434, mace: 0.560, nunchaku: 0.761,
+      greatsword: 0.939, dualdagger: 0.056, glaive: 0.932, gauntlet: 0.769
+    };
+    const handleFrac = handleOffsets[weapon.id] || 0.5;
 
-  switch (weapon.id) {
-    case 'longsword':
-      ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(30, -20); ctx.stroke();
-      ctx.strokeStyle = '#ccc'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(30, -20); ctx.lineTo(70, -48); ctx.stroke();
-      break;
-    case 'dagger':
-      ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(15, -10); ctx.stroke();
-      ctx.strokeStyle = '#aaa'; ctx.beginPath(); ctx.moveTo(15, -10); ctx.lineTo(30, -22); ctx.stroke();
-      break;
-    case 'spear':
-      ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.moveTo(-15, 5); ctx.lineTo(80, -45); ctx.stroke();
-      ctx.strokeStyle = '#ddd'; ctx.beginPath(); ctx.moveTo(78, -44); ctx.lineTo(105, -62); ctx.stroke();
-      ctx.fillStyle = '#eee';
-      ctx.beginPath(); ctx.moveTo(103, -64); ctx.lineTo(110, -57); ctx.lineTo(107, -60); ctx.closePath(); ctx.fill();
-      break;
-    case 'battleaxe':
-      ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(30, -20); ctx.stroke();
-      ctx.fillStyle = '#888';
-      ctx.beginPath();
-      ctx.moveTo(25, -18); ctx.lineTo(45, -38); ctx.lineTo(35, -48); ctx.lineTo(20, -30);
-      ctx.closePath(); ctx.fill();
-      break;
-    case 'mace':
-      ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(28, -18); ctx.stroke();
-      ctx.fillStyle = '#777';
-      ctx.beginPath(); ctx.arc(33, -22, 11, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#999'; ctx.lineWidth = 2;
-      for (let i = 0; i < 6; i++) {
-        let a = (i / 6) * Math.PI * 2;
-        ctx.beginPath();
-        ctx.moveTo(33 + Math.cos(a) * 7, -22 + Math.sin(a) * 7);
-        ctx.lineTo(33 + Math.cos(a) * 13, -22 + Math.sin(a) * 13);
-        ctx.stroke();
-      }
-      break;
-    case 'nunchaku':
-      ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(12, -8); ctx.stroke();
-      ctx.strokeStyle = '#8B4513'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(12, -8); ctx.lineTo(24, -16); ctx.stroke();
-      ctx.strokeStyle = '#ccc'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(14, -10); ctx.quadraticCurveTo(18, -20, 22, -14); ctx.stroke();
-      ctx.strokeStyle = '#8B4513'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(22, -14); ctx.lineTo(28, -10); ctx.stroke();
-      break;
-    case 'greatsword':
-      ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(30, -20); ctx.stroke();
-      ctx.strokeStyle = '#ddd'; ctx.lineWidth = 5;
-      ctx.beginPath(); ctx.moveTo(30, -20); ctx.lineTo(80, -50); ctx.stroke();
-      ctx.strokeStyle = '#aaa'; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(25, -17); ctx.lineTo(35, -23); ctx.stroke();
-      break;
-    case 'dualdagger':
-      ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(14, -9); ctx.stroke();
-      ctx.strokeStyle = '#aaa'; ctx.beginPath(); ctx.moveTo(14, -9); ctx.lineTo(28, -20); ctx.stroke();
-      ctx.save(); ctx.translate(4, 7); ctx.rotate(0.2);
-      ctx.strokeStyle = c; ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(12, -7); ctx.stroke();
-      ctx.strokeStyle = '#aaa';
-      ctx.beginPath(); ctx.moveTo(12, -7); ctx.lineTo(24, -16); ctx.stroke();
-      ctx.restore();
-      break;
-    case 'glaive':
-      ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.moveTo(-15, 5); ctx.lineTo(70, -40); ctx.stroke();
-      ctx.strokeStyle = '#ddd'; ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(65, -38); ctx.quadraticCurveTo(85, -50, 90, -43);
-      ctx.quadraticCurveTo(80, -35, 65, -38);
-      ctx.stroke();
-      break;
-    case 'gauntlet':
-      ctx.fillStyle = c;
-      ctx.beginPath(); ctx.arc(10, -5, 10, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.stroke();
-      break;
+    // Scale: original canvas drawing was ~70-110px. Keep a consistent display size.
+    const scale = 100 / img.naturalWidth;
+    const w = img.naturalWidth * scale;
+    const h = img.naturalHeight * scale;
+
+    // Draw so that the handle (at handleFrac * h) aligns with origin (hand position)
+    ctx.drawImage(img, 0, -handleFrac * h, w, h);
   }
+
   ctx.restore();
 }
 
@@ -786,12 +699,15 @@ function drawWeaponTrail(cx, gy, weapon, attackProgress, isPlayer) {
  */
 function checkHit(attackerX, defenderX, weapon, attackProgress) {
   if (!weapon || attackProgress == null) return false;
-  // 活跃帧检查（严格边界）
+
+  // 条件 1：活跃帧检查
   if (attackProgress < weapon.activeStart || attackProgress > weapon.activeEnd) return false;
-  // 距离检查 (基础臂长 60 + 武器 range) - 严格判定
+
+  // 条件 2：距离检查 (基础臂长 60 + 武器 range)
   const dist = Math.abs(attackerX - defenderX);
   const maxReach = 60 + weapon.range;
-  if (dist >= maxReach) return false;  // 等于或大于都miss
+  if (dist >= maxReach) return false;  // 严格判定：等于或大于都miss
+
   return true;
 }
 
@@ -1194,7 +1110,6 @@ function update(dt) {
         playerAttack.hasHit = true;
       }
     }
-    // Check for missed attack (outside active frames, never hit)
     if (!playerAttack.hasHit && playerAttack.progress > playerWeapon.activeEnd) {
       playerAttack.hasHit = true;
       setBattleMessage('距离不够，打空了');
@@ -1222,7 +1137,6 @@ function update(dt) {
       enemyAttack.hasHit = true;
     }
   }
-  // Enemy miss detection
   if (enemyAttack && !enemyAttack.hasHit && enemyAttack.progress > enemyWeapon.activeEnd) {
     enemyAttack.hasHit = true;
   }
@@ -1320,8 +1234,10 @@ function gameLoop(timestamp) {
 
 // ===================== INIT =====================
 buildWeaponUI();
-lastTime = performance.now();
-requestAnimationFrame(gameLoop);
+preloadWeaponImages().then(() => {
+  lastTime = performance.now();
+  requestAnimationFrame(gameLoop);
+});
 </script>
 </body>
 </html>
