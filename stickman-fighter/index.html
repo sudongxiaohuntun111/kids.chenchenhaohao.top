@@ -235,6 +235,50 @@ function preloadWeaponImages() {
   });
 }
 
+// ===================== CHARACTER HEAD CACHE =====================
+const characterHeads = {};
+
+// Map weapons to character head images
+// Row 0 (colored): longsword, spear, greatsword, bow
+// Row 1 (purple): unarmed, mace, scimitar, dualdagger
+const weaponToHeadMap = {
+  longsword: "longsword",
+  spear: "spear",
+  greatsword: "greatsword",
+  bow: "bow",
+  unarmed: "unarmed",
+  mace: "mace",
+  scimitar: "scimitar",
+  dualdagger: "dualdagger",
+  // Fallbacks for weapons not in the character sheet
+  dagger: "longsword",
+  battleaxe: "mace",
+  nunchaku: "unarmed",
+  glaive: "spear",
+  gauntlet: "unarmed"
+};
+
+function preloadCharacterHeads() {
+  return new Promise((resolve) => {
+    let loaded = 0;
+    const headNames = ["longsword", "spear", "greatsword", "bow", "unarmed", "mace", "scimitar", "dualdagger"];
+    const total = headNames.length;
+    headNames.forEach(name => {
+      const img = new Image();
+      img.onload = () => {
+        loaded++;
+        if (loaded >= total) resolve();
+      };
+      img.onerror = () => {
+        loaded++;
+        if (loaded >= total) resolve();
+      };
+      img.src = "assets/character_heads/" + name + "_head.png";
+      characterHeads[name] = img;
+    });
+  });
+}
+
 // ===================== GAME STATE =====================
 let gameState = 'SELECT'; // SELECT, FIGHT, GAMEOVER
 let playerWeapon = null, enemyWeapon = null;
@@ -598,20 +642,30 @@ function drawStickman(cx, gy, colors, isPlayer, weapon, attacking, defending, at
   }
   ctx.restore();
 
-  // Head
-  ctx.fillStyle = colors.head;
-  ctx.strokeStyle = colors.headStroke || colors.head;
-  ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.arc(0, headY, headR, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-
-  // Eyes
-  ctx.fillStyle = '#fff';
-  let ex = isPlayer ? 5 : -5;
-  ctx.beginPath(); ctx.arc(ex - 4, headY - 3, 4, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(ex + 6, headY - 3, 4, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = isPlayer ? '#00f' : '#f0f';
-  ctx.beginPath(); ctx.arc(ex - 3, headY - 3, 2, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(ex + 7, headY - 3, 2, 0, Math.PI * 2); ctx.fill();
+  // Head - use character head sprite
+  const headName = weaponToHeadMap[weapon ? weapon.id : (isPlayer ? "longsword" : "unarmed")];
+  const headImg = characterHeads[headName];
+  const headDrawSize = headR * 2; // 36px to match original circle diameter
+  if (headImg && headImg.complete && headImg.naturalWidth > 0) {
+    const aspect = headImg.naturalHeight / headImg.naturalWidth;
+    const drawW = headDrawSize;
+    const drawH = headDrawSize * aspect;
+    ctx.drawImage(headImg, -drawW / 2, headY - drawH / 2, drawW, drawH);
+  } else {
+    // Fallback to original circle drawing
+    ctx.fillStyle = colors.head;
+    ctx.strokeStyle = colors.headStroke || colors.head;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(0, headY, headR, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    // Eyes
+    ctx.fillStyle = "#fff";
+    let ex = isPlayer ? 5 : -5;
+    ctx.beginPath(); ctx.arc(ex - 4, headY - 3, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(ex + 6, headY - 3, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = isPlayer ? "#00f" : "#f0f";
+    ctx.beginPath(); ctx.arc(ex - 3, headY - 3, 2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(ex + 7, headY - 3, 2, 0, Math.PI * 2); ctx.fill();
+  }
 
   ctx.restore();
   ctx.restore();
@@ -1234,7 +1288,7 @@ function gameLoop(timestamp) {
 
 // ===================== INIT =====================
 buildWeaponUI();
-preloadWeaponImages().then(() => {
+Promise.all([preloadWeaponImages(), preloadCharacterHeads()]).then(() => {
   lastTime = performance.now();
   requestAnimationFrame(gameLoop);
 });
