@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Stickman Fighter: Arena of Arms v2.1</title>
+<title>Stickman Fighter: Arena of Arms v2.2</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html { height: 100%; background: #101820; }
@@ -137,7 +137,7 @@ canvas {
 <body>
 
 <div id="weaponSelect">
-  <h1>⚔️ 火柴人大乱斗：兵器谱 v2.1 ⚔️</h1>
+  <h1>⚔️ 火柴人大乱斗：兵器谱 v2.2 ⚔️</h1>
   <p>请选择你的趁手兵器开始战斗！</p>
   <div id="weaponGrid"></div>
 </div>
@@ -239,29 +239,40 @@ function preloadWeaponImages() {
 const characterHeads = {};
 
 // Map weapons to character head images
-// Row 0 (colored): longsword, spear, greatsword, bow
-// Row 1 (purple): unarmed, mace, scimitar, dualdagger
-const weaponToHeadMap = {
-  longsword: "longsword",
-  spear: "spear",
-  greatsword: "greatsword",
-  bow: "bow",
-  unarmed: "unarmed",
-  mace: "mace",
-  scimitar: "scimitar",
-  dualdagger: "dualdagger",
-  // Fallbacks for weapons not in the character sheet
-  dagger: "longsword",
-  battleaxe: "mace",
-  nunchaku: "unarmed",
-  glaive: "spear",
-  gauntlet: "unarmed"
+// v2.2: Separate maps for player (hero row) and enemy (enemy row)
+// Player heads (row 0, colored): hero_sword, hero_spear, hero_staff, hero_bow
+// Enemy heads (row 1, purple): enemy_brawl, enemy_club, enemy_slash, enemy_dual
+const playerHeadMap = {
+  longsword: "hero_sword",
+  dagger: "hero_sword",
+  spear: "hero_spear",
+  battleaxe: "hero_sword",
+  mace: "hero_staff",
+  nunchaku: "hero_staff",
+  greatsword: "hero_sword",
+  dualdagger: "hero_sword",
+  glaive: "hero_spear",
+  gauntlet: "hero_staff"
+};
+const enemyHeadMap = {
+  longsword: "enemy_slash",
+  dagger: "enemy_brawl",
+  spear: "enemy_slash",
+  battleaxe: "enemy_club",
+  mace: "enemy_club",
+  nunchaku: "enemy_brawl",
+  greatsword: "enemy_slash",
+  dualdagger: "enemy_dual",
+  glaive: "enemy_slash",
+  gauntlet: "enemy_brawl"
 };
 
 function preloadCharacterHeads() {
   return new Promise((resolve) => {
     let loaded = 0;
-    const headNames = ["longsword", "spear", "greatsword", "bow", "unarmed", "mace", "scimitar", "dualdagger"];
+    // v2.2: New head files from cropped character sprite sheet
+    const headNames = ["hero_sword", "hero_spear", "hero_staff", "hero_bow",
+                        "enemy_brawl", "enemy_club", "enemy_slash", "enemy_dual"];
     const total = headNames.length;
     headNames.forEach(name => {
       const img = new Image();
@@ -457,15 +468,6 @@ function drawWeaponPreviewOnCanvas(canvasEl, weaponId) {
 function drawWeaponPreviews() {
   document.querySelectorAll('.weapon-preview').forEach(c => { if(c.dataset.weapon) drawWeaponPreviewOnCanvas(c, c.dataset.weapon); });
 }
-function drawWeaponSprite(handX, handY, weapon, isPlayer) {
-  if (!spriteImages.weapons) return false;
-  const g = WEAPON_GRID[weapon.id]; if (!g) return false;
-  ctx.save(); ctx.translate(handX, handY);
-  if (!isPlayer) ctx.scale(-1, 1); ctx.rotate(-0.4);
-  const s = 0.7, dw = WPN_FRAME_W*s, dh = WPN_FRAME_H*s;
-  ctx.drawImage(spriteImages.weapons, g.col*WPN_FRAME_W, g.row*WPN_FRAME_H, WPN_FRAME_W, WPN_FRAME_H, -dw/2, -dh/2, dw, dh);
-  ctx.restore(); return true;
-}
 
 // ===================== DRAWING: SCENE =====================
 function drawBoxingRing() {
@@ -642,14 +644,14 @@ function drawStickman(cx, gy, colors, isPlayer, weapon, attacking, defending, at
   }
   ctx.restore();
 
-  // Head - use character head sprite
-  const headName = weaponToHeadMap[weapon ? weapon.id : (isPlayer ? "longsword" : "unarmed")];
+  // Head - use cropped character head sprite (v2.2)
+  const headMap = isPlayer ? playerHeadMap : enemyHeadMap;
+  const headName = headMap[weapon ? weapon.id : (isPlayer ? "longsword" : "dagger")];
   const headImg = characterHeads[headName];
-  const headDrawSize = headR * 2; // 36px to match original circle diameter
+  const headDrawSize = headR * 2 + 8; // ~44px to show more detail from sprite
   if (headImg && headImg.complete && headImg.naturalWidth > 0) {
-    const aspect = headImg.naturalHeight / headImg.naturalWidth;
     const drawW = headDrawSize;
-    const drawH = headDrawSize * aspect;
+    const drawH = headDrawSize;
     ctx.drawImage(headImg, -drawW / 2, headY - drawH / 2, drawW, drawH);
   } else {
     // Fallback to original circle drawing
@@ -672,27 +674,36 @@ function drawStickman(cx, gy, colors, isPlayer, weapon, attacking, defending, at
 }
 
 function drawWeaponAt(handX, handY, weapon, isPlayer, time) {
-  if (drawWeaponSprite(handX, handY, weapon, isPlayer)) return;
   ctx.save();
   ctx.translate(handX, handY);
 
+  // Primary: use cropped individual weapon PNG
   const img = weaponImages[weapon.id];
   if (img && img.complete && img.naturalWidth > 0) {
-    // Handle vertical offset as fraction of height (per-weapon data from sprite analysis)
-    const handleOffsets = {
-      longsword: 0.936, dagger: 0.119, spear: 0.972,
-      battleaxe: 0.434, mace: 0.560, nunchaku: 0.761,
-      greatsword: 0.939, dualdagger: 0.056, glaive: 0.932, gauntlet: 0.769
-    };
-    const handleFrac = handleOffsets[weapon.id] || 0.5;
-
-    // Scale: original canvas drawing was ~70-110px. Keep a consistent display size.
-    const scale = 100 / img.naturalWidth;
+    // Scale weapons to ~80-100px display width
+    const displayW = 90;
+    const scale = displayW / img.naturalWidth;
     const w = img.naturalWidth * scale;
     const h = img.naturalHeight * scale;
-
-    // Draw so that the handle (at handleFrac * h) aligns with origin (hand position)
-    ctx.drawImage(img, 0, -handleFrac * h, w, h);
+    const handleFrac = 0.5;
+    if (!isPlayer) ctx.scale(-1, 1);
+    ctx.drawImage(img, -w / 2, -handleFrac * h, w, h);
+  } else {
+    // Canvas drawing fallback (simple weapon shape)
+    ctx.strokeStyle = weapon.trailColor || '#fff';
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    const len = weapon.range * 0.5;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(len, 0);
+    ctx.stroke();
+    // Guard / cross
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(8, -6);
+    ctx.lineTo(8, 6);
+    ctx.stroke();
   }
 
   ctx.restore();
