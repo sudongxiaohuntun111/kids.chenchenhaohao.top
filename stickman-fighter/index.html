@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Stickman Fighter: Arena of Arms</title>
+<title>Stickman Fighter: Arena of Arms v2.1</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html { height: 100%; background: #101820; }
@@ -67,6 +67,7 @@ canvas {
 }
 .weapon-card:hover { border-color: #ffd166; transform: translateY(-4px); box-shadow: 0 14px 28px rgba(245,166,35,0.25); }
 .weapon-card .icon { font-size: 32px; margin-bottom: 6px; }
+.weapon-card .weapon-preview { display: block; margin: 4px auto 8px; image-rendering: pixelated; }
 .weapon-card .name { color: #fff; font-size: 14px; font-weight: bold; margin-bottom: 4px; }
 .weapon-card .stats { color: #aebbd0; font-size: 11px; line-height: 1.5; }
 .weapon-card .stats span { color: #ffd166; }
@@ -136,7 +137,7 @@ canvas {
 <body>
 
 <div id="weaponSelect">
-  <h1>⚔️ 火柴人大乱斗：兵器谱 ⚔️</h1>
+  <h1>⚔️ 火柴人大乱斗：兵器谱 v2.1 ⚔️</h1>
   <p>请选择你的趁手兵器开始战斗！</p>
   <div id="weaponGrid"></div>
 </div>
@@ -171,6 +172,37 @@ const MOVE_SPEED = 0.24;
 const DASH_SPEED = 0.95;
 const DASH_TIME = 170;
 const DASH_COST = 22;
+// ===================== SPRITE SHEET LOADING =====================
+const spriteImages = { characters: null, weapons: null, loaded: false };
+
+function loadSpriteSheets() {
+  const charImg = new Image();
+  charImg.crossOrigin = 'anonymous';
+  charImg.onload = () => { spriteImages.characters = charImg; checkLoaded(); };
+  charImg.onerror = () => { spriteImages.charError = true; checkLoaded(); };
+  charImg.src = 'images/characters.png';
+
+  const wpnImg = new Image();
+  wpnImg.crossOrigin = 'anonymous';
+  wpnImg.onload = () => { spriteImages.weapons = wpnImg; checkLoaded(); };
+  wpnImg.onerror = () => { spriteImages.wpnError = true; checkLoaded(); };
+  wpnImg.src = 'images/weapons.png';
+}
+
+function checkLoaded() {
+  if (spriteImages.characters || spriteImages.charError) {
+    if (spriteImages.weapons || spriteImages.wpnError) {
+      spriteImages.loaded = true;
+    }
+  }
+}
+loadSpriteSheets();
+
+const CHAR_FRAME_W = 120;
+const CHAR_FRAME_H = 120;
+const WPN_FRAME_W = 100;
+const WPN_FRAME_H = 60;
+
 
 // ===================== WEAPON DEFINITIONS =====================
 // hitChance: probability factor for reaching the opponent at FIGHTER_DIST
@@ -348,6 +380,60 @@ window.addEventListener('keyup', e => {
   }
   if (key === 'k') mouseDownRight = false;
 });
+
+// ===================== DRAWING: SPRITE HELPERS =====================
+
+const WEAPON_GRID = {
+  longsword:  { row: 0, col: 0 },
+  dagger:     { row: 0, col: 1 },
+  spear:      { row: 0, col: 2 },
+  battleaxe:  { row: 0, col: 3 },
+  mace:       { row: 0, col: 4 },
+  nunchaku:   { row: 1, col: 0 },
+  greatsword: { row: 1, col: 1 },
+  dualdagger: { row: 1, col: 2 },
+  glaive:     { row: 1, col: 3 },
+  gauntlet:   { row: 1, col: 4 },
+};
+
+function drawWeaponPreviewOnCanvas(canvasEl, weaponId) {
+  if (!spriteImages.weapons) return;
+  const gridPos = WEAPON_GRID[weaponId];
+  if (!gridPos) return;
+  const wpCtx = canvasEl.getContext('2d');
+  const sx = gridPos.col * WPN_FRAME_W;
+  const sy = gridPos.row * WPN_FRAME_H;
+  wpCtx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+  wpCtx.drawImage(spriteImages.weapons, sx, sy, WPN_FRAME_W, WPN_FRAME_H, 0, 0, canvasEl.width, canvasEl.height);
+}
+
+function drawWeaponPreviews() {
+  const canvases = document.querySelectorAll('.weapon-preview');
+  canvases.forEach(c => {
+    const weaponId = c.dataset.weapon;
+    if (weaponId) drawWeaponPreviewOnCanvas(c, weaponId);
+  });
+}
+
+function drawWeaponSprite(handX, handY, weapon, isPlayer, time) {
+  if (!spriteImages.weapons) return false;
+  const gridPos = WEAPON_GRID[weapon.id];
+  if (!gridPos) return false;
+
+  ctx.save();
+  ctx.translate(handX, handY);
+  if (!isPlayer) ctx.scale(-1, 1);
+  ctx.rotate(-0.4);
+
+  const sx = gridPos.col * WPN_FRAME_W;
+  const sy = gridPos.row * WPN_FRAME_H;
+  const scale = 0.7;
+  const dw = WPN_FRAME_W * scale;
+  const dh = WPN_FRAME_H * scale;
+  ctx.drawImage(spriteImages.weapons, sx, sy, WPN_FRAME_W, WPN_FRAME_H, -dw/2, -dh/2, dw, dh);
+  ctx.restore();
+  return true;
+}
 
 // ===================== DRAWING: SCENE =====================
 function drawBoxingRing() {
@@ -544,6 +630,10 @@ function drawStickman(cx, gy, colors, isPlayer, weapon, attacking, defending, at
 }
 
 function drawWeaponAt(handX, handY, weapon, isPlayer, time) {
+  // Try sprite sheet first
+  if (drawWeaponSprite(handX, handY, weapon, isPlayer, time)) return;
+
+  // Fallback: canvas line drawing (original)
   ctx.save();
   ctx.translate(handX, handY);
 
@@ -696,15 +786,12 @@ function drawWeaponTrail(cx, gy, weapon, attackProgress, isPlayer) {
  */
 function checkHit(attackerX, defenderX, weapon, attackProgress) {
   if (!weapon || attackProgress == null) return false;
-
-  // 条件 1：活跃帧检查
+  // 活跃帧检查（严格边界）
   if (attackProgress < weapon.activeStart || attackProgress > weapon.activeEnd) return false;
-
-  // 条件 2：距离检查 (基础臂长 60 + 武器 range)
+  // 距离检查 (基础臂长 60 + 武器 range) - 严格判定
   const dist = Math.abs(attackerX - defenderX);
   const maxReach = 60 + weapon.range;
-  if (dist > maxReach) return false;
-
+  if (dist >= maxReach) return false;  // 等于或大于都miss
   return true;
 }
 
@@ -1105,10 +1192,12 @@ function update(dt) {
           setBattleMessage(result.blocked ? '被挡住了' : `${playerCombo} 连击`);
         }
         playerAttack.hasHit = true;
-      } else if (playerAttack.progress > playerWeapon.activeEnd && !playerAttack.hasHit) {
-        playerAttack.hasHit = true;
-        setBattleMessage('距离不够，打空了');
       }
+    }
+    // Check for missed attack (outside active frames, never hit)
+    if (!playerAttack.hasHit && playerAttack.progress > playerWeapon.activeEnd) {
+      playerAttack.hasHit = true;
+      setBattleMessage('距离不够，打空了');
     }
 
     if (playerAttack.progress >= 1.0) {
@@ -1132,6 +1221,10 @@ function update(dt) {
       }
       enemyAttack.hasHit = true;
     }
+  }
+  // Enemy miss detection
+  if (enemyAttack && !enemyAttack.hasHit && enemyAttack.progress > enemyWeapon.activeEnd) {
+    enemyAttack.hasHit = true;
   }
 
   updateAI(dt);
