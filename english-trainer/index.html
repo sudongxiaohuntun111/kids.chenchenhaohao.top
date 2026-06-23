@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>FinTech Voice Quest</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="phone-shell">
+        <section class="onboarding" id="onboardingPanel" aria-label="新手教学">
+            <div class="onboarding-card">
+                <p class="kicker">Quick Guide</p>
+                <h2>先熟悉流程，再开始开口</h2>
+                <p class="guide-copy">你每天只做 5 关。每关先听一个小课，再听银行客户、同事或领导说什么，最后用英文回复或复述。</p>
+
+                <div class="guide-list">
+                    <div>
+                        <span>1</span>
+                        <p><strong>看小课</strong> 学今天要用的句型和职场语气。</p>
+                    </div>
+                    <div>
+                        <span>2</span>
+                        <p><strong>听角色</strong> 点播放按钮听甲方、同事或领导的真实办公表达。</p>
+                    </div>
+                    <div>
+                        <span>3</span>
+                        <p><strong>开口说</strong> 点一次开始录音，再点一次结束。</p>
+                    </div>
+                </div>
+
+                <p class="permission-note">录音需要浏览器允许麦克风权限；正式部署到域名时请使用 HTTPS。</p>
+                <button class="primary-button" id="startGuideBtn">Start today</button>
+            </div>
+        </section>
+
+        <header class="topbar">
+            <div>
+                <p class="kicker" id="dayLabel">Week 1 · Day 1</p>
+                <h1>FinTech Voice Quest</h1>
+            </div>
+            <div class="xp-box">
+                <span id="xpValue">0</span>
+                <small>XP</small>
+            </div>
+        </header>
+
+        <main>
+            <section class="course-nav" aria-label="课程导航">
+                <button class="day-nav-button" id="prevDayBtn" type="button">‹</button>
+                <div>
+                    <strong id="courseTitle">Client + Team Basics</strong>
+                    <p id="courseSubtitle">需求澄清、内部同步、客户回复</p>
+                </div>
+                <button class="day-nav-button" id="nextDayBtn" type="button">›</button>
+            </section>
+
+            <section class="pixel-stage" aria-label="像素办公室">
+                <div class="window-grid"></div>
+                <div class="desk desk-left"></div>
+                <div class="desk desk-right"></div>
+                <div class="screen screen-left"></div>
+                <div class="screen screen-right"></div>
+                <div class="sprite player" aria-hidden="true">
+                    <span class="head"></span>
+                    <span class="body"></span>
+                    <span class="legs"></span>
+                </div>
+                <div class="sprite npc" aria-hidden="true">
+                    <span class="head"></span>
+                    <span class="body"></span>
+                    <span class="legs"></span>
+                </div>
+                <div class="speech-bubble">
+                    <strong id="npcName">Ms. Chen · Bank PM</strong>
+                    <p id="npcLine">We need to confirm the reporting requirement before UAT starts.</p>
+                </div>
+            </section>
+
+            <section class="mission-card">
+                <div class="mission-head">
+                    <div>
+                        <p class="kicker" id="stageLabel">Level 1 of 5</p>
+                        <h2 id="missionTitle">Confirm the Requirement</h2>
+                    </div>
+                    <button class="icon-button" id="playNpcBtn" aria-label="播放角色语音" title="播放角色语音">
+                        <span class="play-icon"></span>
+                    </button>
+                </div>
+
+                <div class="lesson-clip">
+                <div class="lesson-top">
+                        <span class="clip-badge">Micro lesson</span>
+                        <button class="text-button" id="lessonPlayBtn">Play</button>
+                    </div>
+                    <p id="lessonText">Use “Could you walk me through...” when you want a client to explain a requirement step by step.</p>
+                    <p class="voice-note" id="voiceNote">Voice: browser default</p>
+                    <div class="clip-track" aria-hidden="true">
+                        <span id="lessonProgress"></span>
+                    </div>
+                </div>
+
+                <div class="challenge-panel">
+                    <p class="prompt-label" id="challengeMode">Shadowing</p>
+                    <p class="target-line" id="targetLine">Could you walk me through the reporting requirement?</p>
+                    <p class="hint-line" id="hintLine">请跟读：你能带我过一下报表需求吗？</p>
+                    <button class="target-audio-button" id="playTargetBtn" type="button">🔊 目标句</button>
+                    <div class="keyword-row" id="keywordRow"></div>
+                </div>
+
+                <div class="voice-area">
+                    <button class="mic-button" id="micButton">
+                        <span class="mic-dot"></span>
+                        <span id="micLabel">Start recording</span>
+                    </button>
+                    <button class="ghost-button" id="replayBtn" disabled>Replay</button>
+                </div>
+
+                <div class="feedback" id="feedbackPanel">
+                    <div class="feedback-meter">
+                        <span class="feedback-score" id="scoreValue">--</span>
+                        <small>score</small>
+                    </div>
+                    <div class="feedback-copy">
+                        <strong id="feedbackTitle">准备练习</strong>
+                        <p id="feedbackText">听完小课后，点击麦克风开始录音，再点击一次结束。</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="daily-route" aria-label="每日五关">
+                <button class="route-step active" data-level="0">
+                    <span class="route-emoji">🧭</span>
+                    <small>看小课</small>
+                </button>
+                <button class="route-step" data-level="1">
+                    <span class="route-emoji">🎧</span>
+                    <small>听同事</small>
+                </button>
+                <button class="route-step" data-level="2">
+                    <span class="route-emoji">🧑‍💻</span>
+                    <small>问技术</small>
+                </button>
+                <button class="route-step" data-level="3">
+                    <span class="route-emoji">🏦</span>
+                    <small>回银行</small>
+                </button>
+                <button class="route-step" data-level="4">
+                    <span class="route-emoji">📣</span>
+                    <small>做汇报</small>
+                </button>
+            </section>
+
+            <div class="action-row">
+                <button class="secondary-button" id="prevBtn">Back</button>
+                <button class="primary-button" id="nextBtn">Next level</button>
+            </div>
+        </main>
+    </div>
+
+    <script src="courses.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
