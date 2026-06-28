@@ -2,12 +2,17 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>Sky Blaster - 天空突击者</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#000;overflow:hidden;display:flex;justify-content:center;align-items:center;height:100vh}
-canvas{image-rendering:pixelated;image-rendering:crisp-edges;max-width:100vw;max-height:100vh}
+html,body{width:100%;height:100%;overflow:hidden;background:#020611}
+body{display:flex;justify-content:center;align-items:center;min-height:100dvh;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;touch-action:none;overscroll-behavior:none}
+canvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges;background:#071427;box-shadow:0 0 0 1px rgba(103,232,249,.18),0 18px 80px rgba(0,0,0,.55);touch-action:none}
+@media (max-width:700px){
+  body{align-items:flex-start;background:#020611}
+  canvas{box-shadow:none}
+}
 </style>
 </head>
 <body>
@@ -16,8 +21,33 @@ canvas{image-rendering:pixelated;image-rendering:crisp-edges;max-width:100vw;max
 const W=960,H=1440,c=document.getElementById('c'),ctx=c.getContext('2d');
 c.width=W;c.height=H;
 const K={};
+function fitCanvas(){
+    const vw=window.innerWidth,vh=window.innerHeight,ratio=W/H;
+    if(vw<=700&&vw/vh<ratio*0.9){
+        c.style.width=vw+'px';
+        c.style.height=vh+'px';
+        return;
+    }
+    let cw=vw,ch=vw/ratio;
+    if(ch>vh){ch=vh;cw=vh*ratio}
+    c.style.width=Math.floor(cw)+'px';
+    c.style.height=Math.floor(ch)+'px';
+}
+fitCanvas();
+window.addEventListener('resize',fitCanvas);
 function rnd(a,b){return Math.random()*(b-a)+a}
 function rndi(a,b){return Math.floor(rnd(a,b+1))}
+function roundRect(x,y,w,h,r,fill=true,stroke=false){
+    const rr=Math.min(r,w/2,h/2);
+    ctx.beginPath();
+    ctx.moveTo(x+rr,y);ctx.lineTo(x+w-rr,y);ctx.quadraticCurveTo(x+w,y,x+w,y+rr);
+    ctx.lineTo(x+w,y+h-rr);ctx.quadraticCurveTo(x+w,y+h,x+w-rr,y+h);
+    ctx.lineTo(x+rr,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-rr);
+    ctx.lineTo(x,y+rr);ctx.quadraticCurveTo(x,y,x+rr,y);
+    ctx.closePath();
+    if(fill)ctx.fill();
+    if(stroke)ctx.stroke();
+}
 
 // === PIXEL ART SPRITE SYSTEM ===
 const SPR={};
@@ -127,13 +157,15 @@ function hit(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y}
 
 const DIFF={easy:{hp:5,inv:2,spawn:0.7,bossHp:0.6},normal:{hp:3,inv:1.5,spawn:1,bossHp:1},hard:{hp:2,inv:1,spawn:1.5,bossHp:1.3}};
 let actx=null;
-function initAudio(){try{actx=new(window.AudioContext||window.webkitAudioContext)}catch(e){}}
+function initAudio(){try{if(!actx)actx=new(window.AudioContext||window.webkitAudioContext);if(actx&&actx.state==='suspended')actx.resume()}catch(e){}}
 function snd(t){if(!actx)return;const o=actx.createOscillator(),g=actx.createGain();o.connect(g);g.connect(actx.destination);if(t==='shoot'){o.frequency.setValueAtTime(880,actx.currentTime);o.frequency.exponentialRampToValueAtTime(440,actx.currentTime+0.06);g.gain.setValueAtTime(0.06,actx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,actx.currentTime+0.06);o.start();o.stop(actx.currentTime+0.06)}else if(t==='hit'){o.type='square';o.frequency.setValueAtTime(200,actx.currentTime);o.frequency.exponentialRampToValueAtTime(50,actx.currentTime+0.15);g.gain.setValueAtTime(0.1,actx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,actx.currentTime+0.15);o.start();o.stop(actx.currentTime+0.15)}else if(t==='lvl'){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>{const oo=actx.createOscillator(),gg=actx.createGain();oo.connect(gg);gg.connect(actx.destination);oo.type='sine';oo.frequency.setValueAtTime(f,actx.currentTime);gg.gain.setValueAtTime(0.06,actx.currentTime);gg.gain.exponentialRampToValueAtTime(0.001,actx.currentTime+0.1);oo.start();oo.stop(actx.currentTime+0.1)},i*70))}}
 
 let state='menu',diff='normal',player=null,enemies=[],pBul=[],eBul=[],orbs=[],particles=[];
 let spawner=null,expSys=null,skillSys=null,skillUI=null,boss=null;
 let wave=0,lvl=1,score=0,waveTimer=0,bossSpawned=false,showSkill=false,mainSel=0,levelUpTimer=0,nextLvl=1;
+let pointerDown=false,touchTarget=null;
 let stars=[];for(let i=0;i<40;i++)stars.push({x:rnd(0,W),y:rnd(0,H),s:rnd(0.5,1.5),sp:rnd(15,30)});
+let clouds=[];for(let i=0;i<8;i++)clouds.push({x:rnd(-120,W),y:rnd(80,H-120),w:rnd(140,280),sp:rnd(8,18),a:rnd(0.06,0.16)});
 
 // Particles
 function boom(x,y,n=15,c='#ff6b6b'){for(let i=0;i<n;i++)particles.push({x,y,vx:rnd(-120,120),vy:rnd(-120,120),life:rnd(0.2,0.5),ml:0.5,sz:rnd(3,8),c})}
@@ -143,10 +175,18 @@ class Player{
     constructor(d){this.w=64;this.h=72;this.x=W/2-this.w/2;this.y=H-140;this.hp=DIFF[d].hp;this.inv=DIFF[d].inv;this.invT=0;this.spd=350;this.shootT=0;this.shootI=0.18;this.missileT=0;this.missileI=1.5;this.skills={};this.shieldHits=0}
     update(dt){
         let dx=0,dy=0;
-        if(K.ArrowLeft||K.a)dx=-1;if(K.ArrowRight||K.d)dx=1;if(K.ArrowUp||K.w)dy=-1;if(K.ArrowDown||K.s)dy=1;
-        if(dx&&dy){dx*=0.7;dy*=0.7}
         const s=this.spd*(1+(this.skills.speed||0)*0.2);
-        this.x=cls(this.x+dx*s*dt,0,W-this.w);this.y=cls(this.y+dy*s*dt,0,H-this.h);
+        if(touchTarget){
+            const tx=cls(touchTarget.x-this.w/2,0,W-this.w);
+            const ty=cls(touchTarget.y-this.h*1.35,80,H-this.h-36);
+            const step=s*1.6*dt;
+            const mx=tx-this.x,my=ty-this.y,d=Math.hypot(mx,my);
+            if(d<=step||d<1){this.x=tx;this.y=ty}else{this.x+=mx/d*step;this.y+=my/d*step}
+        }else{
+            if(K.ArrowLeft||K.a)dx=-1;if(K.ArrowRight||K.d)dx=1;if(K.ArrowUp||K.w)dy=-1;if(K.ArrowDown||K.s)dy=1;
+            if(dx&&dy){dx*=0.7;dy*=0.7}
+            this.x=cls(this.x+dx*s*dt,0,W-this.w);this.y=cls(this.y+dy*s*dt,0,H-this.h);
+        }
         this.shootT+=dt;const intv=this.shootI*Math.max(0.15,1-(this.skills.fireRate||0)*0.15);
         let bullets=[];
         if(this.shootT>=intv){this.shootT=0;const dmg=1+(this.skills.damage||0)*0.3;const cnt=1+(this.skills.scatter||0);
@@ -259,9 +299,10 @@ class SkillSys{
 }
 
 class SkillUI{
-    constructor(){this.vis=false;this.items=[];this.cb=null}
+    constructor(){this.vis=false;this.items=[];this.cb=null;this.cards=[]}
     show(items,cb){this.vis=true;this.items=items;this.cb=cb}
     input(k){if(!this.vis)return;if(k>='1'&&k<='3'&&parseInt(k)-1<this.items.length){this.cb(this.items[parseInt(k)-1].id);this.vis=false}}
+    pickAt(x,y){const i=this.cards.findIndex(r=>x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h);if(i>=0&&this.items[i]){this.cb(this.items[i].id);this.vis=false;return true}return false}
     drawIcon(x,y,skillId){
         ctx.save();ctx.translate(x,y);ctx.scale(1.5,1.5);
         if(skillId==='scatter'){
@@ -284,17 +325,25 @@ class SkillUI{
         ctx.restore();
     }
     render(){
-        if(!this.vis)return;ctx.fillStyle='rgba(0,0,0,0.9)';ctx.fillRect(0,0,W,H);
-        ctx.fillStyle='#ffd32a';ctx.font='bold 64px monospace';ctx.textAlign='center';ctx.fillText('选择技能',W/2,150);
-        ctx.fillStyle='#888';ctx.font='32px monospace';ctx.fillText('按 1/2/3 选择',W/2,200);
-        const cw=240,sp=30,sx=(W-this.items.length*cw-(this.items.length-1)*sp)/2;
+        if(!this.vis)return;ctx.fillStyle='rgba(2,6,17,0.92)';ctx.fillRect(0,0,W,H);
+        ctx.fillStyle='rgba(78,205,196,0.08)';for(let y=0;y<H;y+=48){ctx.fillRect(0,y,W,2)}
+        ctx.fillStyle='#ffd32a';ctx.font='bold 64px monospace';ctx.textAlign='center';ctx.fillText('选择强化',W/2,150);
+        ctx.fillStyle='#b8f7ff';ctx.font='28px monospace';ctx.fillText('点击卡片，或按 1/2/3',W/2,198);
+        const cw=250,sp=24,sx=(W-this.items.length*cw-(this.items.length-1)*sp)/2;
+        this.cards=[];
         this.items.forEach((sk,i)=>{const x=sx+i*(cw+sp),y=260;
-            ctx.fillStyle='#1a2a3a';ctx.fillRect(x,y,cw,420);ctx.strokeStyle='#3498db';ctx.lineWidth=3;ctx.strokeRect(x,y,cw,420);
+            this.cards.push({x,y,w:cw,h:440});
+            const grad=ctx.createLinearGradient(x,y,x,y+440);grad.addColorStop(0,'#173b55');grad.addColorStop(1,'#0b172b');
+            ctx.fillStyle=grad;roundRect(x,y,cw,440,24,true,false);
+            ctx.strokeStyle=i===0?'#ffd32a':'#4ecdc4';ctx.lineWidth=4;roundRect(x+2,y+2,cw-4,436,22,false,true);
+            ctx.fillStyle='rgba(255,255,255,0.08)';roundRect(x+18,y+20,cw-36,116,18,true,false);
             this.drawIcon(x+cw/2,y+80,sk.id);
             ctx.fillStyle='#fff';ctx.font='bold 32px monospace';ctx.fillText(sk.name,x+cw/2,y+170);
             ctx.fillStyle='#2ed573';ctx.font='24px monospace';ctx.fillText('Lv.'+sk.lv+' → '+(sk.lv+1),x+cw/2,y+210);
             ctx.fillStyle='#aaa';ctx.font='22px monospace';ctx.fillText(sk.desc,x+cw/2,y+260);
-            ctx.fillStyle='#ffd32a';ctx.font='bold 48px monospace';ctx.fillText('['+(i+1)+']',x+cw/2,y+380);
+            ctx.fillStyle='#ffd32a';ctx.font='bold 44px monospace';ctx.fillText('点击升级',x+cw/2,y+370);
+            ctx.fillStyle='rgba(255,211,42,0.18)';roundRect(x+58,y+388,cw-116,34,16,true,false);
+            ctx.fillStyle='#ffe66d';ctx.font='bold 24px monospace';ctx.fillText('['+(i+1)+']',x+cw/2,y+414);
         });ctx.textAlign='left';
     }
 }
@@ -320,7 +369,7 @@ class Boss{
     }
 }
 
-function startGame(d){state='playing';diff=d;player=new Player(d);enemies=[];pBul=[];eBul=[];orbs=[];particles=[];spawner=new Spawner(d);expSys=new ExpSys();skillSys=new SkillSys();skillUI=new SkillUI();boss=null;wave=0;score=0;waveTimer=0;bossSpawned=false;lvl=1;showSkill=false;initAudio();nextWave()}
+function startGame(d){state='playing';diff=d;touchTarget=null;pointerDown=false;player=new Player(d);enemies=[];pBul=[];eBul=[];orbs=[];particles=[];spawner=new Spawner(d);expSys=new ExpSys();skillSys=new SkillSys();skillUI=new SkillUI();boss=null;wave=0;score=0;waveTimer=0;bossSpawned=false;lvl=1;showSkill=false;initAudio();nextWave()}
 function nextWave(){wave++;const cfgs=[{types:['scout','fighter'],n:5},{types:['scout','fighter','bomber'],n:6},{types:['scout','fighter','bomber','drone'],n:7}];const cfg=cfgs[lvl-1];if(wave<=cfg.n)spawner.start(wave,cfg.types,DIFF[diff].spawn);else if(!bossSpawned&&!boss){snd('hit');bossSpawned=true;boss=new Boss(['level1','level2','level3'][lvl-1],diff)}}
 function skillUp(){showSkill=true;skillUI.show(skillSys.get(3),id=>{skillSys.pick(id);player.addSkill(id);showSkill=false})}
 
@@ -379,12 +428,46 @@ function update(dt){
     if(player){const range=30+(player.skills.magnet||0)*25;if(expSys.update(dt,player.x+player.w/2,player.y+player.h/2,range)){snd('lvl');skillUp()}}
     particles.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt});particles=particles.filter(p=>p.life>0);
     stars.forEach(s=>{s.y+=s.sp*dt;if(s.y>H){s.y=0;s.x=rnd(0,W)}});
+    clouds.forEach(cl=>{cl.y+=cl.sp*dt;if(cl.y>H+100){cl.y=-120;cl.x=rnd(-160,W-80);cl.w=rnd(140,280);cl.a=rnd(0.06,0.16)}});
     if(!spawner.on&&enemies.length===0&&!bossSpawned&&!boss){waveTimer+=dt;if(waveTimer>=1.5){waveTimer=0;nextWave()}}
 }
 
+function drawBackground(){
+    const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#0b2a4a');g.addColorStop(0.46,'#071426');g.addColorStop(1,'#040610');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='rgba(120,220,255,0.08)';ctx.fillRect(0,0,W,160);
+    ctx.fillStyle='rgba(255,255,255,0.55)';stars.forEach(s=>ctx.fillRect(s.x,s.y,s.s,s.s));
+    ctx.fillStyle='rgba(116,211,255,0.28)';stars.forEach((s,i)=>{if(i%7===0)ctx.fillRect(s.x-1,s.y,4,1)});
+    clouds.forEach(cl=>{
+        ctx.save();ctx.globalAlpha=cl.a;ctx.fillStyle='#d7f5ff';
+        roundRect(cl.x,cl.y,cl.w,36,18,true,false);
+        roundRect(cl.x+cl.w*0.15,cl.y-24,cl.w*0.42,58,28,true,false);
+        roundRect(cl.x+cl.w*0.48,cl.y-14,cl.w*0.34,48,24,true,false);
+        ctx.restore();
+    });
+}
+
+function drawHud(){
+    if(!player)return;
+    ctx.fillStyle='rgba(2,8,18,0.62)';roundRect(14,14,258,58,18,true,false);
+    for(let i=0;i<player.hp;i++){
+        const x=32+i*42,y=28;
+        ctx.fillStyle='#ff4757';ctx.beginPath();ctx.moveTo(x+16,y+30);ctx.bezierCurveTo(x-6,y+16,x+2,y-4,x+16,y+6);ctx.bezierCurveTo(x+30,y-4,x+38,y+16,x+16,y+30);ctx.fill();
+    }
+    ctx.fillStyle='rgba(2,8,18,0.72)';roundRect(W-298,14,284,104,18,true,false);
+    ctx.fillStyle='#fff';ctx.font='bold 24px monospace';ctx.textAlign='left';ctx.fillText('得分 '+score,W-276,46);ctx.fillText('波次 '+wave,W-276,78);ctx.fillText('关卡 '+lvl,W-276,108);
+    ctx.fillStyle='rgba(2,8,18,0.72)';roundRect(16,H-58,W-32,34,17,true,false);
+    ctx.fillStyle='#1f334d';roundRect(26,H-48,W-52,14,7,true,false);
+    ctx.fillStyle='#2ed573';roundRect(26,H-48,(W-52)*expSys.pct(),14,7,true,false);
+    ctx.fillStyle='#fff';ctx.font='bold 24px monospace';ctx.fillText('Lv.'+expSys.lv,30,H-20);
+    ctx.textAlign='center';ctx.fillStyle='rgba(255,255,255,0.45)';ctx.font='22px monospace';ctx.fillText('拖动屏幕移动',W/2,H-20);
+    ctx.fillStyle='rgba(255,211,42,0.18)';roundRect(W-154,132,128,54,18,true,false);
+    ctx.strokeStyle='rgba(255,211,42,0.65)';ctx.lineWidth=2;roundRect(W-154,132,128,54,18,false,true);
+    ctx.fillStyle='#ffd32a';ctx.font='bold 24px monospace';ctx.fillText('暂停',W-90,166);
+    ctx.textAlign='left';
+}
+
 function render(){
-    const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#0a1a2a');g.addColorStop(1,'#050510');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
-    ctx.fillStyle='rgba(255,255,255,0.5)';stars.forEach(s=>ctx.fillRect(s.x,s.y,s.s,s.s));
+    drawBackground();
     if(state==='menu'){renderMenu();return}
     if(player)player.render();enemies.forEach(e=>e.render());if(boss&&boss.active)boss.render();
     pBul.forEach(b=>{
@@ -394,11 +477,11 @@ function render(){
     eBul.forEach(b=>{ctx.fillStyle='#ff4757';ctx.fillRect(b.x,b.y,b.w,b.h);ctx.fillStyle='#ff9f43';ctx.fillRect(b.x+2,b.y+2,2,b.h-6)});
     expSys.render();
     particles.forEach(p=>{ctx.fillStyle=p.c;ctx.globalAlpha=p.life/p.ml;ctx.fillRect(p.x-p.sz/2,p.y-p.sz/2,p.sz,p.sz)});ctx.globalAlpha=1;
-    if(player){ctx.fillStyle='#ff4757';for(let i=0;i<player.hp;i++){ctx.fillRect(16+i*50,16,40,40);ctx.fillStyle='#ff9f43';ctx.fillRect(22+i*50,22,28,28);ctx.fillStyle='#ff4757';ctx.fillRect(24+i*50,24,24,24)}ctx.fillStyle='#333';ctx.fillRect(16,H-40,W-32,24);ctx.fillStyle='#2ed573';ctx.fillRect(16,H-40,(W-32)*expSys.pct(),24);ctx.fillStyle='#fff';ctx.font='bold 24px monospace';ctx.fillText('Lv.'+expSys.lv,20,H-12);ctx.fillText('Score: '+score,W-280,36);ctx.fillText('Wave: '+wave,W-280,66);ctx.fillText('Level: '+lvl,W-280,96)}
+    drawHud();
     if(showSkill)skillUI.render();
-    if(state==='gameOver'){ctx.fillStyle='rgba(0,0,0,0.85)';ctx.fillRect(0,0,W,H);ctx.fillStyle='#ff4757';ctx.font='bold 72px monospace';ctx.textAlign='center';ctx.fillText('游戏结束',W/2,H/2-60);ctx.fillStyle='#fff';ctx.font='36px monospace';ctx.fillText('得分: '+score,W/2,H/2+20);ctx.fillText('按1重来 | 按2菜单',W/2,H/2+80);ctx.textAlign='left'}
-    if(state==='victory'){ctx.fillStyle='rgba(0,0,0,0.85)';ctx.fillRect(0,0,W,H);ctx.fillStyle='#2ed573';ctx.font='bold 96px monospace';ctx.textAlign='center';ctx.fillText('胜利!',W/2,H/2-80);ctx.fillStyle='#ffd32a';ctx.font='48px monospace';ctx.fillText('恭喜通关!',W/2,H/2);ctx.fillStyle='#fff';ctx.font='36px monospace';ctx.fillText('得分: '+score,W/2,H/2+60);ctx.fillText('按1再玩 | 按2菜单',W/2,H/2+120);ctx.textAlign='left'}
-    if(state==='paused'){ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,0,W,H);ctx.fillStyle='#ffd32a';ctx.font='bold 72px monospace';ctx.textAlign='center';ctx.fillText('暂停',W/2,H/2-40);ctx.fillStyle='#fff';ctx.font='36px monospace';ctx.fillText('ESC继续 | 1菜单',W/2,H/2+40);ctx.textAlign='left'}
+    if(state==='gameOver')renderEndOverlay('游戏结束','#ff4757','再来一次','回菜单');
+    if(state==='victory')renderEndOverlay('胜利!','#2ed573','再玩一次','回菜单','恭喜通关!');
+    if(state==='paused')renderPause();
     if(state==='levelUp'){
         ctx.fillStyle='rgba(0,0,0,0.9)';ctx.fillRect(0,0,W,H);
         ctx.fillStyle='#2ed573';ctx.font='bold 80px monospace';ctx.textAlign='center';
@@ -412,21 +495,55 @@ function render(){
     }
 }
 
+function drawButton(x,y,w,h,label,sub,active=false){
+    const grad=ctx.createLinearGradient(x,y,x,y+h);grad.addColorStop(0,active?'#2d546f':'#172842');grad.addColorStop(1,active?'#182f4c':'#0b1629');
+    ctx.fillStyle=grad;roundRect(x,y,w,h,24,true,false);
+    ctx.strokeStyle=active?'#ffd32a':'rgba(78,205,196,0.55)';ctx.lineWidth=active?5:3;roundRect(x+2,y+2,w-4,h-4,22,false,true);
+    ctx.fillStyle=active?'#ffd32a':'#ffffff';ctx.font='bold 42px monospace';ctx.textAlign='center';ctx.fillText(label,x+w/2,y+52);
+    if(sub){ctx.fillStyle='#b7c9dc';ctx.font='24px monospace';ctx.fillText(sub,x+w/2,y+88)}
+}
+
+function renderEndOverlay(title,color,primary,secondary,sub=''){
+    ctx.fillStyle='rgba(2,6,17,0.9)';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='rgba(78,205,196,0.12)';roundRect(132,H/2-250,W-264,470,34,true,false);
+    ctx.strokeStyle='rgba(255,255,255,0.18)';ctx.lineWidth=3;roundRect(132,H/2-250,W-264,470,34,false,true);
+    ctx.fillStyle=color;ctx.font='bold 82px monospace';ctx.textAlign='center';ctx.fillText(title,W/2,H/2-130);
+    if(sub){ctx.fillStyle='#ffd32a';ctx.font='40px monospace';ctx.fillText(sub,W/2,H/2-70)}
+    ctx.fillStyle='#fff';ctx.font='36px monospace';ctx.fillText('得分: '+score,W/2,H/2-12);
+    drawButton(W/2-250,H/2+54,220,104,primary,'点击',true);
+    drawButton(W/2+30,H/2+54,220,104,secondary,'点击',false);
+    ctx.textAlign='left';
+}
+
+function renderPause(){
+    ctx.fillStyle='rgba(2,6,17,0.76)';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='rgba(255,211,42,0.12)';roundRect(192,H/2-210,W-384,360,34,true,false);
+    ctx.strokeStyle='rgba(255,211,42,0.55)';ctx.lineWidth=4;roundRect(192,H/2-210,W-384,360,34,false,true);
+    ctx.fillStyle='#ffd32a';ctx.font='bold 76px monospace';ctx.textAlign='center';ctx.fillText('暂停',W/2,H/2-90);
+    drawButton(W/2-250,H/2-20,220,104,'继续','点击',true);
+    drawButton(W/2+30,H/2-20,220,104,'菜单','点击',false);
+    ctx.textAlign='left';
+}
+
 function renderMenu(){
-    ctx.fillStyle='#ffd32a';ctx.font='bold 96px monospace';ctx.textAlign='center';ctx.fillText('SKY BLASTER',W/2,320);
-    ctx.fillStyle='#4ecdc4';ctx.font='54px monospace';ctx.fillText('天空突击者',W/2,390);
-    ctx.fillStyle='#fff';ctx.font='48px monospace';ctx.fillText('选择难度',W/2,540);
-    ['简单','普通','困难'].forEach((n,i)=>{const y=660+i*140;
-        if(mainSel===i){ctx.fillStyle='rgba(255,211,42,0.2)';ctx.fillRect(W/2-240,y-50,480,100)}
-        ctx.fillStyle=mainSel===i?'#ffd32a':'#ccc';ctx.font='bold 48px monospace';ctx.fillText('['+(i+1)+'] '+n,W/2,y);
-        ctx.fillStyle='#888';ctx.font='30px monospace';ctx.fillText(['适合新手','标准难度','挑战极限'][i],W/2,y+48)});
-    ctx.fillStyle='#666';ctx.font='30px monospace';ctx.fillText('WASD移动 | 自动射击 | ESC暂停',W/2,H-70);ctx.textAlign='left';
+    ctx.fillStyle='rgba(2,6,17,0.18)';ctx.fillRect(0,0,W,H);
+    ctx.textAlign='center';
+    ctx.fillStyle='rgba(255,211,42,0.16)';roundRect(150,220,W-300,186,38,true,false);
+    ctx.strokeStyle='rgba(255,211,42,0.38)';ctx.lineWidth=4;roundRect(150,220,W-300,186,38,false,true);
+    ctx.fillStyle='#ffd32a';ctx.font='bold 86px monospace';ctx.fillText('SKY BLASTER',W/2,314);
+    ctx.fillStyle='#6ff7ff';ctx.font='bold 46px monospace';ctx.fillText('天空突击者',W/2,376);
+    ctx.fillStyle='#ffffff';ctx.font='bold 40px monospace';ctx.fillText('选择难度开始',W/2,520);
+    const names=['简单','普通','困难'],subs=['适合新手','标准难度','挑战极限'];
+    names.forEach((n,i)=>drawButton(W/2-270,600+i*145,540,112,'['+(i+1)+'] '+n,subs[i],mainSel===i));
+    ctx.fillStyle='rgba(255,255,255,0.58)';ctx.font='26px monospace';ctx.fillText('手机：拖动飞机移动  |  电脑：WASD / 方向键',W/2,H-70);
+    ctx.textAlign='left';
 }
 
 let last=0;
 function loop(ts){const dt=Math.min((ts-last)/1000,0.04);last=ts;if(state==='playing'||state==='levelUp')update(dt);render();requestAnimationFrame(loop)}
 
 document.addEventListener('keydown',e=>{K[e.key]=true;
+    if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();
     if(state==='menu'){if(e.key==='ArrowUp'||e.key==='w')mainSel=(mainSel+2)%3;if(e.key==='ArrowDown'||e.key==='s')mainSel=(mainSel+1)%3;if(e.key>='1'&&e.key<='3')startGame(['easy','normal','hard'][parseInt(e.key)-1]);if(e.key==='Enter'||e.key===' ')startGame(['easy','normal','hard'][mainSel])}
     else if(state==='playing'){if(showSkill){skillUI.input(e.key);return}if(e.key==='Escape')state='paused'}
     else if(state==='paused'){if(e.key==='Escape')state='playing';if(e.key==='1')state='menu'}
@@ -434,6 +551,43 @@ document.addEventListener('keydown',e=>{K[e.key]=true;
     else if(state==='gameOver'||state==='victory'){if(e.key==='1')startGame(diff);if(e.key==='2')state='menu'}
 });
 document.addEventListener('keyup',e=>{K[e.key]=false});
+
+function canvasPoint(e){
+    const r=c.getBoundingClientRect();
+    return {x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height};
+}
+function inRect(p,x,y,w,h){return p.x>=x&&p.x<=x+w&&p.y>=y&&p.y<=y+h}
+function handleTap(p){
+    initAudio();
+    if(state==='menu'){
+        for(let i=0;i<3;i++){
+            if(inRect(p,W/2-270,600+i*145,540,112)){mainSel=i;startGame(['easy','normal','hard'][i]);return}
+        }
+    }else if(state==='playing'){
+        if(showSkill&&skillUI.pickAt(p.x,p.y))return;
+        if(!showSkill&&inRect(p,W-154,132,128,54)){state='paused';touchTarget=null;return}
+        touchTarget=p;
+    }else if(state==='paused'){
+        if(inRect(p,W/2-250,H/2-20,220,104)){state='playing';return}
+        if(inRect(p,W/2+30,H/2-20,220,104)){state='menu';touchTarget=null;return}
+    }else if(state==='levelUp'){
+        levelUpTimer=0;
+    }else if(state==='gameOver'||state==='victory'){
+        if(inRect(p,W/2-250,H/2+54,220,104)){startGame(diff);return}
+        if(inRect(p,W/2+30,H/2+54,220,104)){state='menu';touchTarget=null;return}
+    }
+}
+c.addEventListener('pointerdown',e=>{
+    e.preventDefault();pointerDown=true;c.setPointerCapture?.(e.pointerId);
+    const p=canvasPoint(e);handleTap(p);
+});
+c.addEventListener('pointermove',e=>{
+    if(!pointerDown)return;e.preventDefault();
+    if(state==='playing'&&!showSkill)touchTarget=canvasPoint(e);
+});
+function endPointer(e){e.preventDefault();pointerDown=false;touchTarget=null}
+c.addEventListener('pointerup',endPointer);
+c.addEventListener('pointercancel',endPointer);
 requestAnimationFrame(loop);
 </script>
 </body>
