@@ -679,8 +679,9 @@ function decorateControls() {
   });
 }
 
+buildWeaponUI();
+
 loadAssets().then(() => {
-  buildWeaponUI();
   decorateControls();
   lastTime = performance.now();
   requestAnimationFrame(gameLoop);
