@@ -109,8 +109,9 @@ function buildWeaponUI() {
     const card = document.createElement('button');
     card.className = 'weapon-card';
     card.type = 'button';
+    card.setAttribute('aria-label', `${w.name}`);
     card.innerHTML = `
-      <span class="weapon-art"><img src="${ASSET_ROOT}/weapons/${w.id}.png" alt="${w.name}"></span>
+      <span class="weapon-art" aria-hidden="true"><img src="${ASSET_ROOT}/weapons/${w.id}.png" alt=""></span>
       <span class="name">${w.name}</span>
       <span class="stats">伤害 ${w.damage} · 范围 ${w.range}<br>耗力 ${w.stamina} · ${(1000 / w.cooldown).toFixed(1)} 次/秒<br>${w.desc}</span>
     `;
@@ -677,8 +678,6 @@ function decorateControls() {
     img.alt = '';
     document.getElementById(id).prepend(img);
   });
-  const logo = document.getElementById('titleLogo');
-  if (images.logo) logo.src = images.logo.src;
 }
 
 loadAssets().then(() => {
