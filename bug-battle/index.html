@@ -401,6 +401,25 @@ function startBattle(playerBugs,enemyBugs,isPvp){
 
 function getActivebugs(team){return team.filter(b=>b.hp>0);}
 function getFirstAlive(team){return team.find(b=>b.hp>0);}
+function getFirstAliveIdx(team){return team.findIndex(b=>b.hp>0);}
+function ensurePlayerActiveBug(logSwitch=false){
+  const active=B.playerTeam[B.activeBugIdx];
+  if(active&&active.hp>0)return false;
+  const nextIdx=getFirstAliveIdx(B.playerTeam);
+  if(nextIdx<0)return false;
+  const prev=active;
+  B.activeBugIdx=nextIdx;
+  B.selectedSkill=null;
+  B.targetMode=null;
+  if(logSwitch&&prev){
+    B.battleLog.push({type:'switch',target:B.playerTeam[nextIdx].id,text:`${prev.name} 倒下，${B.playerTeam[nextIdx].name} 上场！`});
+  }
+  return true;
+}
+function resolvePlayerFaint(logSwitch=true){
+  if(checkBattleEnd())return false;
+  return ensurePlayerActiveBug(logSwitch);
+}
 function getActiveBug(){return B.playerTeam[B.activeBugIdx]||getFirstAlive(B.playerTeam);}
 function getTargetableEnemies(){return B.isPlayerTurn?getActivebugs(B.enemyTeam):getActivebugs(B.playerTeam);}
 function getTargetableAllies(){return B.isPlayerTurn?getActivebugs(B.playerTeam):getActivebugs(B.enemyTeam);}
@@ -561,9 +580,11 @@ function nextTurn(){
   if(checkBattleEnd()){showBattleResult();return;}
   B.turnCount++;
   const poisonLogs=processPoisonAndBuffs(B.playerTeam);
+  resolvePlayerFaint(true);
   const poisonLogs2=processPoisonAndBuffs(B.enemyTeam);
   B.battleLog.push(...poisonLogs,...poisonLogs2);
   if(checkBattleEnd()){showBattleResult();return;}
+  resolvePlayerFaint(true);
   if(B.isPvp){
     B.pvpTurn=B.pvpTurn===1?2:1;
     B.isPlayerTurn=B.pvpTurn===1;
@@ -579,7 +600,9 @@ function aiTurn(){
   if(B.result)return;
   const caster=getActivebugs(B.enemyTeam)[0];
   if(!caster||caster.hp<=0){nextTurn();return;}
+  resolvePlayerFaint(true);
   const enemies=getActivebugs(B.playerTeam);
+  if(enemies.length===0){B.result='lose';showBattleResult();return;}
   const allies=getActivebugs(B.enemyTeam);
   let bestScore=-999,skillIdx=0,targetIdx=0;
 
@@ -654,8 +677,13 @@ function aiTurn(){
 
 function executePlayerAction(skill,target){
   if(B.result||B.animate)return;
+  ensurePlayerActiveBug(true);
   const caster=B.isPlayerTurn?getActiveBug():getActivebugs(B.enemyTeam)[0];
-  if(!caster||caster.hp<=0)return;
+  if(!caster||caster.hp<=0){
+    if(checkBattleEnd())showBattleResult();
+    else renderBattle();
+    return;
+  }
   if(caster.stunned){
     G.sfx.play('stun');
     B.battleLog.push({type:'stun',target:caster.id,text:`${caster.name} 被定住了，无法行动！`});
@@ -678,6 +706,7 @@ function executePlayerAction(skill,target){
   const logs=processSkill(caster,skill,target);
   B.fx.crit=logs.some(l=>l.crit);
   B.battleLog.push(...logs);
+  resolvePlayerFaint(true);
   B.selectedSkill=null;B.targetMode=null;
   renderBattle();
   setTimeout(()=>{
@@ -740,8 +769,9 @@ function switchActiveBug(){
 }
 
 function selectSkill(idx){
+  ensurePlayerActiveBug(true);
   const caster=getActiveBug();
-  if(!caster)return;
+  if(!caster||caster.hp<=0){renderBattle();return;}
   const skill=caster.skills[idx];
   B.selectedSkill=idx;
   G.sfx.play('select');
@@ -766,7 +796,9 @@ function selectSkill(idx){
 
 function selectTarget(targetId){
   if(!B.targetMode||B.selectedSkill===null)return;
+  ensurePlayerActiveBug(true);
   const caster=getActiveBug();
+  if(!caster||caster.hp<=0){renderBattle();return;}
   const skill=caster.skills[B.selectedSkill];
   let target;
   if(B.targetMode==='enemy'){
