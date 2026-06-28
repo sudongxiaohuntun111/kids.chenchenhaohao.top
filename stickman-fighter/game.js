@@ -15,12 +15,11 @@ const DASH_TIME = 170;
 const DASH_COST = 22;
 
 const ASSET_ROOT = 'assets/overhaul';
-const HEROES = ['hero_sword', 'hero_spear', 'hero_staff', 'hero_bow'];
-const ENEMIES = ['enemy_brawl', 'enemy_club', 'enemy_slash', 'enemy_dual'];
-const EFFECT_ROWS = {
-  longsword: 0, dagger: 1, spear: 1, battleaxe: 2, mace: 6,
-  nunchaku: 3, greatsword: 2, dualdagger: 4, glaive: 6, gauntlet: 7
-};
+const FIGHTER_SPRITES = [
+  'player-idle', 'player-attack1', 'player-attack2', 'player-defend', 'player-dash', 'player-hit',
+  'enemy-idle', 'enemy-attack1', 'enemy-attack2', 'enemy-defend', 'enemy-hit',
+  'victory', 'defeat'
+];
 
 const WEAPONS = [
   { id: 'longsword', name: '长剑', range: 132, damage: 12, cooldown: 520, stamina: 12, swingSpeed: 0.075, activeStart: 0.2, activeEnd: 0.72, color: '#ffd66b', desc: '攻守平衡' },
@@ -40,8 +39,6 @@ const particles = [];
 let gameState = 'SELECT';
 let playerWeapon = null;
 let enemyWeapon = null;
-let playerSprite = null;
-let enemySprite = null;
 let playerHP = 100;
 let enemyHP = 100;
 let playerX = PLAYER_START_X;
@@ -54,6 +51,8 @@ let playerDefending = false;
 let enemyDefending = false;
 let playerDashTimer = 0;
 let enemyDashTimer = 0;
+let playerHitTimer = 0;
+let enemyHitTimer = 0;
 let playerPerfectBlockTimer = 0;
 let enemyPerfectBlockTimer = 0;
 let lastPlayerAttackTime = 0;
@@ -77,23 +76,54 @@ let screenShake = { x: 0, y: 0, intensity: 0 };
 function loadImage(key, src) {
   return new Promise(resolve => {
     const img = new Image();
-    img.onload = () => { images[key] = img; resolve(); };
+    img.onload = () => {
+      images[key] = img;
+      computeAlphaTrim(img);
+      resolve();
+    };
     img.onerror = () => { console.warn('asset failed', src); resolve(); };
     img.src = src;
   });
 }
 
+function computeAlphaTrim(img) {
+  try {
+    const scratch = document.createElement('canvas');
+    scratch.width = img.naturalWidth;
+    scratch.height = img.naturalHeight;
+    const sctx = scratch.getContext('2d', { willReadFrequently: true });
+    sctx.drawImage(img, 0, 0);
+    const data = sctx.getImageData(0, 0, scratch.width, scratch.height).data;
+    let minX = scratch.width, minY = scratch.height, maxX = -1, maxY = -1;
+    for (let y = 0; y < scratch.height; y++) {
+      for (let x = 0; x < scratch.width; x++) {
+        if (data[(y * scratch.width + x) * 4 + 3] > 8) {
+          minX = Math.min(minX, x);
+          minY = Math.min(minY, y);
+          maxX = Math.max(maxX, x);
+          maxY = Math.max(maxY, y);
+        }
+      }
+    }
+    if (maxX >= minX) img.trim = { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
+  } catch (err) {
+    img.trim = null;
+  }
+}
+
 async function loadAssets() {
   const jobs = [
     loadImage('logo', `${ASSET_ROOT}/ui/logo.png`),
-    loadImage('effects', `${ASSET_ROOT}/effects/attack_effects.png`),
+    loadImage('arenaBg', `${ASSET_ROOT}/effects/arena-bg.png`),
+    loadImage('slashTrail', `${ASSET_ROOT}/effects/slash-trail.png`),
+    loadImage('hitSpark', `${ASSET_ROOT}/effects/hit-spark.png`),
     loadImage('attackIcon', `${ASSET_ROOT}/ui/attack.png`),
     loadImage('blockIcon', `${ASSET_ROOT}/ui/block.png`),
     loadImage('dashIcon', `${ASSET_ROOT}/ui/dash.png`),
     loadImage('leftIcon', `${ASSET_ROOT}/ui/left.png`),
     loadImage('rightIcon', `${ASSET_ROOT}/ui/right.png`)
   ];
-  HEROES.concat(ENEMIES).forEach(id => jobs.push(loadImage(id, `${ASSET_ROOT}/fighters/${id}.png`)));
+  FIGHTER_SPRITES.forEach(id => jobs.push(loadImage(id, `${ASSET_ROOT}/fighters/${id}.png`)));
   WEAPONS.forEach(w => jobs.push(loadImage(`weapon_${w.id}`, `${ASSET_ROOT}/weapons/${w.id}.png`)));
   await Promise.all(jobs);
 }
@@ -122,14 +152,13 @@ function buildWeaponUI() {
 function startGame(weapon) {
   playerWeapon = weapon;
   enemyWeapon = choose(WEAPONS.filter(w => w.id !== weapon.id));
-  playerSprite = choose(HEROES);
-  enemySprite = choose(ENEMIES);
   playerHP = 100; enemyHP = 100;
   playerX = PLAYER_START_X; enemyX = ENEMY_START_X;
   playerStamina = 100; enemyStamina = 100;
   playerAttack = null; enemyAttack = null;
   playerDefending = false; enemyDefending = false;
   playerDashTimer = 0; enemyDashTimer = 0;
+  playerHitTimer = 0; enemyHitTimer = 0;
   playerPerfectBlockTimer = 0; enemyPerfectBlockTimer = 0;
   lastPlayerAttackTime = 0; lastEnemyAttackTime = 0;
   aiDecisionTimer = 0; aiDefendTimer = 0;
@@ -237,12 +266,14 @@ function applyDamage(target, weapon, defending, perfectTimer, comboBonus = 1) {
     }
     const reduced = Math.max(1, Math.ceil(base * (weapon.id === 'mace' || weapon.id === 'battleaxe' ? 0.34 : 0.18)));
     if (target === 'enemy') enemyHP -= reduced; else playerHP -= reduced;
+    if (target === 'enemy') enemyHitTimer = 220; else playerHitTimer = 220;
     damageNumber(x, y, reduced, '#9bd6ff');
     burst(x, y, '#79c8ff', 18, 'block');
     shake(4);
     return { damage: reduced, blocked: true, perfect: false };
   }
   if (target === 'enemy') enemyHP -= base; else playerHP -= base;
+  if (target === 'enemy') enemyHitTimer = 280; else playerHitTimer = 280;
   damageNumber(x, y, base, weapon.color);
   burst(x, y, weapon.color, 30, 'hit');
   shake(8 + Math.min(10, base * 0.35));
@@ -363,6 +394,8 @@ function update(dt) {
   enemyStamina = clamp(enemyStamina + dt * (enemyDefending ? 0.01 : 0.028), 0, 100);
   playerPerfectBlockTimer = Math.max(0, playerPerfectBlockTimer - dt);
   enemyPerfectBlockTimer = Math.max(0, enemyPerfectBlockTimer - dt);
+  playerHitTimer = Math.max(0, playerHitTimer - dt);
+  enemyHitTimer = Math.max(0, enemyHitTimer - dt);
   if (dashQueued) { tryDash(true); dashQueued = false; }
   if (playerDashTimer > 0) {
     const dir = moveLeft ? -1 : 1;
@@ -412,122 +445,193 @@ function update(dt) {
 }
 
 function drawArena() {
-  const sky = ctx.createLinearGradient(0, 0, 0, H);
-  sky.addColorStop(0, '#8fdfff');
-  sky.addColorStop(0.34, '#d7fbff');
-  sky.addColorStop(0.35, '#77d26d');
-  sky.addColorStop(1, '#2d7d56');
-  ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, W, H);
-  ctx.save();
-  ctx.globalAlpha = 0.34;
-  for (let i = 0; i < 7; i++) {
-    ctx.fillStyle = i % 2 ? '#fff6c7' : '#b8f0ff';
+  if (images.arenaBg) {
+    const img = images.arenaBg;
+    const scale = Math.max(W / img.naturalWidth, H / img.naturalHeight);
+    const dw = img.naturalWidth * scale;
+    const dh = img.naturalHeight * scale;
+    ctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
+    ctx.fillStyle = 'rgba(9, 14, 20, 0.08)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(18, 24, 31, 0.16)';
     ctx.beginPath();
-    ctx.ellipse(90 + i * 145, 92 + Math.sin(i) * 22, 76, 22, 0, 0, Math.PI * 2);
+    ctx.ellipse(W / 2, GROUND_Y + 18, 410, 62, 0, 0, Math.PI * 2);
     ctx.fill();
+    return;
+  }
+
+  const wall = ctx.createLinearGradient(0, 0, 0, GROUND_Y + 20);
+  wall.addColorStop(0, '#f7fbff');
+  wall.addColorStop(0.62, '#dce8f1');
+  wall.addColorStop(1, '#b9c9d2');
+  ctx.fillStyle = wall;
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.save();
+  ctx.strokeStyle = 'rgba(69, 85, 102, 0.12)';
+  ctx.lineWidth = 2;
+  for (let x = 70; x < W; x += 70) {
+    ctx.beginPath();
+    ctx.moveTo(x, 70);
+    ctx.lineTo(x, GROUND_Y + 4);
+    ctx.stroke();
+  }
+  for (let y = 86; y < GROUND_Y; y += 54) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(W, y);
+    ctx.stroke();
   }
   ctx.restore();
-  ctx.fillStyle = 'rgba(28, 80, 52, 0.28)';
-  ctx.beginPath();
-  ctx.ellipse(W / 2, GROUND_Y + 64, 470, 92, 0, 0, Math.PI * 2);
-  ctx.fill();
-  const floor = ctx.createRadialGradient(W / 2, GROUND_Y + 10, 60, W / 2, GROUND_Y + 20, 520);
-  floor.addColorStop(0, '#fff1a8');
-  floor.addColorStop(0.45, '#e7cb74');
-  floor.addColorStop(0.48, '#69bd64');
-  floor.addColorStop(1, '#246c4f');
+
+  ctx.fillStyle = '#2b3542';
+  ctx.fillRect(0, GROUND_Y - 8, W, 10);
+
+  const floor = ctx.createLinearGradient(0, GROUND_Y, 0, H);
+  floor.addColorStop(0, '#f5d58a');
+  floor.addColorStop(1, '#b87c42');
   ctx.fillStyle = floor;
+  ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+
+  ctx.save();
+  ctx.strokeStyle = 'rgba(85, 49, 24, 0.22)';
+  ctx.lineWidth = 3;
+  for (let y = GROUND_Y + 28; y < H; y += 36) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(W, y);
+    ctx.stroke();
+  }
+  for (let x = -180; x < W + 180; x += 92) {
+    ctx.beginPath();
+    ctx.moveTo(x, GROUND_Y);
+    ctx.lineTo(x + 130, H);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  ctx.fillStyle = 'rgba(35, 42, 51, 0.16)';
   ctx.beginPath();
-  ctx.ellipse(W / 2, GROUND_Y + 22, 465, 96, 0, 0, Math.PI * 2);
+  ctx.ellipse(W / 2, GROUND_Y + 18, 410, 62, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.58)';
-  ctx.lineWidth = 5;
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.72)';
+  ctx.lineWidth = 4;
   ctx.beginPath();
-  ctx.ellipse(W / 2, GROUND_Y + 22, 360, 66, 0, 0, Math.PI * 2);
+  ctx.moveTo(ARENA_LEFT, GROUND_Y + 5);
+  ctx.lineTo(ARENA_RIGHT, GROUND_Y + 5);
   ctx.stroke();
+
+  ctx.fillStyle = 'rgba(43,53,66,0.82)';
+  ctx.font = '900 28px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('STICKMAN DOJO', W / 2, 104);
 }
 
-function drawFighter(x, spriteId, weapon, isPlayer, attack, defending, dashTimer) {
-  const img = images[spriteId];
+function drawTrimmedSprite(img, centerX, footY, maxW, maxH) {
+  if (!img) return;
+  const trim = img.trim || { x: 0, y: 0, w: img.naturalWidth, h: img.naturalHeight };
+  const scale = Math.min(maxW / trim.w, maxH / trim.h);
+  const dw = trim.w * scale;
+  const dh = trim.h * scale;
+  ctx.drawImage(img, trim.x, trim.y, trim.w, trim.h, centerX - dw / 2, footY - dh, dw, dh);
+}
+
+function fighterSpriteKey(isPlayer, attack, defending, dashTimer, hitTimer) {
+  const side = isPlayer ? 'player' : 'enemy';
+  if (gameState === 'GAMEOVER') {
+    const won = enemyHP <= 0;
+    return (isPlayer ? won : !won) ? 'victory' : 'defeat';
+  }
+  if (hitTimer > 0) return isPlayer ? 'player-hit' : 'enemy-hit';
+  if (defending) return `${side}-defend`;
+  if (dashTimer > 0) return isPlayer ? 'player-dash' : 'enemy-idle';
+  if (attack) return `${side}-attack${attack.progress < 0.48 ? '1' : '2'}`;
+  return `${side}-idle`;
+}
+
+function drawFighter(x, isPlayer, attack, defending, dashTimer, hitTimer) {
   const bob = Math.sin(gameTime * 0.004 + (isPlayer ? 0 : 1.6)) * 4;
   const attackOffset = attack ? Math.sin(Math.min(1, attack.progress) * Math.PI) * 28 : 0;
+  const accent = isPlayer ? '#7deaff' : '#ff9cbd';
+  const key = fighterSpriteKey(isPlayer, attack, defending, dashTimer, hitTimer);
+  const img = images[key];
+
   ctx.save();
   ctx.translate(x + (isPlayer ? attackOffset : -attackOffset), GROUND_Y + bob);
   if (!isPlayer) ctx.scale(-1, 1);
   if (dashTimer > 0) {
-    ctx.globalAlpha = 0.22;
-    for (let i = 4; i > 0; i--) drawSpriteImage(img, -i * 18, -148, 150, 188);
+    for (let i = 4; i > 0; i--) {
+      ctx.save();
+      ctx.globalAlpha = 0.08 + i * 0.035;
+      ctx.translate(-i * 22, 0);
+      drawTrimmedSprite(img, 0, 0, 172, 202);
+      ctx.restore();
+    }
     ctx.globalAlpha = 1;
   }
-  if (defending) drawBlockEffect(34, -112, isPlayer ? '#7deaff' : '#b175ff');
-  drawSpriteImage(img, -78, -198, 156, 204);
-  drawHeldWeapon(weapon, attack ? attack.progress : 0, defending);
-  ctx.restore();
-}
-
-function drawSpriteImage(img, x, y, w, h) {
-  if (img && img.complete && img.naturalWidth > 0) ctx.drawImage(img, x, y, w, h);
-}
-
-function drawHeldWeapon(weapon, progress, defending) {
-  if (defending) return;
-  const img = images[`weapon_${weapon.id}`];
-  const windup = progress ? Math.sin(progress * Math.PI) : 0;
-  ctx.save();
-  ctx.translate(48, -118);
-  ctx.rotate((-0.5 + progress * 1.45) * windup);
-  const scale = weapon.id === 'gauntlet' ? 0.44 : 0.52;
-  if (img) ctx.drawImage(img, -34, -80, 150 * scale, 150 * scale);
+  if (defending) drawBlockEffect(36, -108, accent);
+  drawTrimmedSprite(img, 0, 0, 185, 218);
   ctx.restore();
 }
 
 function drawBlockEffect(x, y, color) {
   ctx.save();
   ctx.translate(x, y);
-  ctx.fillStyle = color;
-  ctx.globalAlpha = 0.28 + Math.sin(gameTime * 0.018) * 0.12;
-  ctx.beginPath();
-  ctx.roundRect(-18, -44, 44, 82, 22);
-  ctx.fill();
-  ctx.globalAlpha = 0.8;
-  ctx.strokeStyle = '#ffffff';
-  ctx.lineWidth = 3;
-  ctx.stroke();
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 3; i++) {
+    ctx.strokeStyle = i === 0 ? color : '#ffffff';
+    ctx.globalAlpha = (0.42 - i * 0.1) + Math.sin(gameTime * 0.018 + i) * 0.08;
+    ctx.lineWidth = 4 - i * 0.8;
+    ctx.beginPath();
+    ctx.arc(0, 0, 48 + i * 10, -1.15, 1.15);
+    ctx.stroke();
+  }
   ctx.restore();
 }
 
 function drawAttackEffect(x, y, weapon, progress, isPlayer) {
-  const sheet = images.effects;
-  if (!sheet || !progress || progress < 0.1 || progress > 0.86) return;
-  const row = EFFECT_ROWS[weapon.id] || 0;
-  const frame = clamp(Math.floor(progress * 4), 0, 3);
+  if (!progress || progress < 0.1 || progress > 0.86) return;
   ctx.save();
   ctx.translate(x, y);
   if (!isPlayer) ctx.scale(-1, 1);
   ctx.globalCompositeOperation = 'lighter';
-  ctx.globalAlpha = 0.82;
-  ctx.drawImage(sheet, frame * 256, row * 120, 256, 120, -20, -175, weapon.range * 1.35, 136);
+  const active = Math.sin(progress * Math.PI);
+  const reach = weapon.range * (0.92 + active * 0.42);
+  const img = images.slashTrail;
+  if (img) {
+    ctx.globalAlpha = 0.76 * active;
+    ctx.translate(60 + reach * 0.18, -118);
+    ctx.rotate(-0.18 + progress * 0.38);
+    drawTrimmedSprite(img, reach * 0.24, 76, reach * 1.22, 138);
+  } else {
+    ctx.strokeStyle = weapon.color;
+    ctx.lineCap = 'round';
+    for (let i = 0; i < 3; i++) {
+      ctx.globalAlpha = (0.5 - i * 0.12) * active;
+      ctx.lineWidth = 12 - i * 3;
+      ctx.beginPath();
+      ctx.arc(38, -108, reach * (0.62 + i * 0.12), -0.9 + progress * 0.85, -0.12 + progress * 1.12);
+      ctx.stroke();
+    }
+  }
   ctx.restore();
 }
 
 function drawBar(x, y, w, h, pct, fillA, fillB, label, flip = false) {
   ctx.save();
-  ctx.fillStyle = 'rgba(255, 253, 245, 0.92)';
-  ctx.strokeStyle = '#24324d';
-  ctx.lineWidth = 4;
+  ctx.fillStyle = 'rgba(9, 14, 20, 0.54)';
   ctx.beginPath();
-  ctx.roundRect(x, y, w, h + 31, 12);
+  ctx.roundRect(x, y, w, h + 24, 6);
   ctx.fill();
-  ctx.stroke();
-  ctx.fillStyle = '#24324d';
-  ctx.font = '800 15px Arial';
+  ctx.fillStyle = 'rgba(255,255,255,0.88)';
+  ctx.font = '800 13px Arial';
   ctx.textAlign = flip ? 'right' : 'left';
-  ctx.fillText(label, flip ? x + w - 12 : x + 12, y + 20);
-  const bx = x + 12, by = y + 30, bw = w - 24;
-  ctx.fillStyle = '#dfe7ef';
+  ctx.fillText(label, flip ? x + w - 9 : x + 9, y + 16);
+  const bx = x + 9, by = y + 24, bw = w - 18;
+  ctx.fillStyle = 'rgba(255,255,255,0.24)';
   ctx.beginPath();
-  ctx.roundRect(bx, by, bw, h, h / 2);
+  ctx.roundRect(bx, by, bw, h, 3);
   ctx.fill();
   const grad = ctx.createLinearGradient(bx, by, bx + bw, by);
   grad.addColorStop(0, fillA);
@@ -535,52 +639,49 @@ function drawBar(x, y, w, h, pct, fillA, fillB, label, flip = false) {
   ctx.fillStyle = grad;
   const fw = bw * clamp(pct, 0, 1);
   ctx.beginPath();
-  if (flip) ctx.roundRect(bx + bw - fw, by, fw, h, h / 2);
-  else ctx.roundRect(bx, by, fw, h, h / 2);
+  if (flip) ctx.roundRect(bx + bw - fw, by, fw, h, 3);
+  else ctx.roundRect(bx, by, fw, h, 3);
   ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.7)';
-  ctx.lineWidth = 2;
-  ctx.stroke();
   ctx.restore();
 }
 
 function drawHUD() {
-  drawBar(18, 14, 342, 17, playerHP / 100, '#42d96b', '#b6ff7d', `我方  ${playerWeapon.name}`);
-  drawBar(W - 360, 14, 342, 17, enemyHP / 100, '#b175ff', '#ff5f91', `${enemyWeapon.name}  敌方`, true);
-  drawMiniBar(30, 70, 318, playerStamina / 100, '#5fe8b0');
-  drawMiniBar(W - 348, 70, 318, enemyStamina / 100, '#ff9cbd', true);
+  drawBar(18, 14, 330, 13, playerHP / 100, '#277cff', '#7deaff', `蓝方  ${playerWeapon.name}`);
+  drawBar(W - 348, 14, 330, 13, enemyHP / 100, '#ff5f5f', '#ff9cbd', `${enemyWeapon.name}  红方`, true);
+  drawMiniBar(28, 62, 310, playerStamina / 100, '#21c78a');
+  drawMiniBar(W - 338, 62, 310, enemyStamina / 100, '#ff8aa5', true);
   ctx.textAlign = 'center';
-  ctx.font = '900 28px Arial';
-  ctx.fillStyle = '#24324d';
-  ctx.fillText('VS', W / 2, 42);
+  ctx.font = '900 24px Arial';
+  ctx.fillStyle = '#15191f';
+  ctx.fillText('VS', W / 2, 38);
   ctx.font = '800 14px Arial';
-  ctx.fillStyle = '#35617d';
-  ctx.fillText(`距离 ${Math.round(Math.abs(enemyX - playerX))}`, W / 2, 64);
+  ctx.fillStyle = 'rgba(21,25,31,0.62)';
+  ctx.fillText(`${Math.round(Math.abs(enemyX - playerX))} px`, W / 2, 60);
   if (playerCombo > 1) {
-    ctx.fillStyle = '#ff6b5c';
+    ctx.fillStyle = '#ee3b3b';
     ctx.font = '900 28px Arial';
     ctx.fillText(`${playerCombo} HIT`, W / 2, 104);
   }
   if (battleMessageTimer > 0) {
-    ctx.fillStyle = 'rgba(36,50,77,0.84)';
+    ctx.fillStyle = 'rgba(21,25,31,0.82)';
     ctx.beginPath();
-    ctx.roundRect(W / 2 - 160, 112, 320, 38, 19);
+    ctx.roundRect(W / 2 - 150, 112, 300, 34, 8);
     ctx.fill();
-    ctx.fillStyle = '#fff7ca';
+    ctx.fillStyle = '#f9fbff';
     ctx.font = '800 16px Arial';
-    ctx.fillText(battleMessage, W / 2, 137);
+    ctx.fillText(battleMessage, W / 2, 135);
   }
 }
 
 function drawMiniBar(x, y, w, pct, color, flip = false) {
-  ctx.fillStyle = 'rgba(36,50,77,0.25)';
+  ctx.fillStyle = 'rgba(9,14,20,0.36)';
   ctx.beginPath();
-  ctx.roundRect(x, y, w, 8, 4);
+  ctx.roundRect(x, y, w, 6, 3);
   ctx.fill();
   ctx.fillStyle = color;
   const fw = w * clamp(pct, 0, 1);
   ctx.beginPath();
-  ctx.roundRect(flip ? x + w - fw : x, y, fw, 8, 4);
+  ctx.roundRect(flip ? x + w - fw : x, y, fw, 6, 3);
   ctx.fill();
 }
 
@@ -602,6 +703,11 @@ function drawParticles() {
       ctx.beginPath();
       ctx.roundRect(p.x - p.size, p.y - p.size * 0.25, p.size * 2.2, p.size * 0.5, p.size * 0.25);
       ctx.fill();
+    } else if ((p.type === 'hit' || p.type === 'block') && images.hitSpark) {
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.translate(p.x, p.y);
+      ctx.rotate((p.x + p.y + p.life) * 0.02);
+      drawTrimmedSprite(images.hitSpark, 0, p.size * 1.2, p.size * 6.2, p.size * 6.2);
     } else {
       ctx.globalCompositeOperation = 'lighter';
       ctx.beginPath();
@@ -615,27 +721,38 @@ function drawParticles() {
 function drawGameOver() {
   const won = enemyHP <= 0;
   ctx.save();
-  ctx.fillStyle = won ? 'rgba(20, 48, 62, 0.78)' : 'rgba(42, 18, 38, 0.82)';
+  ctx.fillStyle = won ? 'rgba(17, 30, 43, 0.58)' : 'rgba(35, 17, 25, 0.62)';
   ctx.fillRect(0, 0, W, H);
   ctx.globalCompositeOperation = 'lighter';
-  for (let i = 0; i < 36; i++) {
-    const x = (i * 97 + gameTime * 0.04) % W;
-    const y = 70 + Math.sin(gameTime * 0.003 + i) * 150 + (i % 7) * 54;
-    ctx.fillStyle = won ? 'rgba(255,214,107,0.18)' : 'rgba(255,87,87,0.14)';
+  for (let i = 0; i < 28; i++) {
+    const x = (i * 113 + gameTime * 0.05) % W;
+    const y = 74 + Math.sin(gameTime * 0.004 + i) * 132 + (i % 6) * 54;
+    ctx.fillStyle = won ? 'rgba(125,234,255,0.16)' : 'rgba(255,95,95,0.13)';
     ctx.beginPath();
-    ctx.arc(x, y, 18 + (i % 5) * 6, 0, Math.PI * 2);
+    ctx.arc(x, y, 4 + (i % 4) * 3, 0, Math.PI * 2);
     ctx.fill();
   }
   ctx.globalCompositeOperation = 'source-over';
+
+  ctx.save();
+  ctx.translate(W / 2 - 102, H / 2 + 132);
+  drawTrimmedSprite(images[won ? 'victory' : 'defeat'], 0, 0, 180, 208);
+  ctx.restore();
+  ctx.save();
+  ctx.translate(W / 2 + 102, H / 2 + 132);
+  ctx.scale(-1, 1);
+  drawTrimmedSprite(images[won ? 'defeat' : 'victory'], 0, 0, 180, 208);
+  ctx.restore();
+
   ctx.textAlign = 'center';
-  ctx.fillStyle = '#fffdf5';
-  ctx.strokeStyle = won ? '#ff9c38' : '#7deaff';
-  ctx.lineWidth = 8;
-  ctx.font = '900 62px Arial';
+  ctx.fillStyle = '#f9fbff';
+  ctx.strokeStyle = won ? '#277cff' : '#ee3b3b';
+  ctx.lineWidth = 7;
+  ctx.font = '900 58px Arial';
   const title = won ? '胜利' : '败北';
   ctx.strokeText(title, W / 2, H / 2 - 34);
   ctx.fillText(title, W / 2, H / 2 - 34);
-  ctx.fillStyle = won ? '#ffd66b' : '#ff9cbd';
+  ctx.fillStyle = won ? '#7deaff' : '#ffb1c2';
   ctx.font = '800 22px Arial';
   ctx.fillText(won ? '你击败了对手' : '再选一把武器复仇', W / 2, H / 2 + 12);
   ctx.fillStyle = 'rgba(255,255,255,0.86)';
@@ -651,8 +768,8 @@ function render() {
   if (gameState === 'FIGHT' || gameState === 'GAMEOVER') {
     drawAttackEffect(playerX, GROUND_Y, playerWeapon, playerAttack && playerAttack.progress, true);
     drawAttackEffect(enemyX, GROUND_Y, enemyWeapon, enemyAttack && enemyAttack.progress, false);
-    drawFighter(playerX, playerSprite, playerWeapon, true, playerAttack, playerDefending, playerDashTimer);
-    drawFighter(enemyX, enemySprite, enemyWeapon, false, enemyAttack, enemyDefending, enemyDashTimer);
+    drawFighter(playerX, true, playerAttack, playerDefending, playerDashTimer, playerHitTimer);
+    drawFighter(enemyX, false, enemyAttack, enemyDefending, enemyDashTimer, enemyHitTimer);
     drawParticles();
     drawHUD();
     if (gameState === 'GAMEOVER') drawGameOver();
