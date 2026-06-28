@@ -109,7 +109,6 @@ function buildWeaponUI() {
     const card = document.createElement('button');
     card.className = 'weapon-card';
     card.type = 'button';
-    card.setAttribute('aria-label', `${w.name}`);
     card.innerHTML = `
       <span class="weapon-art" aria-hidden="true"><img src="${ASSET_ROOT}/weapons/${w.id}.png" alt=""></span>
       <span class="name">${w.name}</span>
