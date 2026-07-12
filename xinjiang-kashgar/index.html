@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="format-detection" content="telephone=no">
+<meta name="theme-color" content="#0F4C81">
+<title>喀什+帕米尔 8天 · 手机攻略 v3</title>
+<style>
+:root{
+  --c-bg:#F5F1EA;
+  --c-card:#FFFFFF;
+  --c-ink:#1A1A1A;
+  --c-mute:#6B6B6B;
+  --c-accent:#0F4C81;
+  --c-warn:#C0392B;
+  --c-warn-bg:#FDF1EF;
+  --c-orange:#E67E22;
+  --c-green:#27AE60;
+  --c-purple:#7D3C98;
+  --c-divider:#E8E3D8;
+  --c-highlight:#FFF8E1;
+  --c-fix:#FFF4E5;
+  --shadow:0 2px 12px rgba(0,0,0,.06);
+  --radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--c-bg);color:var(--c-ink);font-family:-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+body{padding-bottom:80px}
+
+/* ===== 顶部信息条 ===== */
+.topbar{
+  position:sticky;top:0;z-index:100;
+  background:linear-gradient(135deg,#0F4C81,#1B6CA8);
+  color:#fff;padding:14px 16px 12px;
+  box-shadow:0 2px 8px rgba(0,0,0,.15);
+}
+.topbar h1{font-size:18px;font-weight:700;letter-spacing:.5px;margin-bottom:4px}
+.topbar .sub{font-size:12px;opacity:.9}
+.topbar .quick-stats{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.topbar .chip{background:rgba(255,255,255,.18);padding:4px 10px;border-radius:20px;font-size:11px}
+
+/* ===== 折叠菜单 ===== */
+.toc{
+  background:#fff;margin:10px;border-radius:var(--radius);
+  box-shadow:var(--shadow);overflow:hidden;
+}
+.toc-toggle{
+  width:100%;background:#fff;border:none;
+  padding:14px 16px;display:flex;justify-content:space-between;align-items:center;
+  font-size:15px;font-weight:700;color:var(--c-ink);cursor:pointer;
+  border-bottom:1px solid var(--c-divider);
+}
+.toc-toggle:active{background:#f8f8f8}
+.toc-toggle .arrow{transition:transform .25s;font-size:13px;color:var(--c-mute)}
+.toc-toggle.open .arrow{transform:rotate(-180deg)}
+.toc-body{max-height:0;overflow:hidden;transition:max-height .35s ease}
+.toc-body.open{max-height:2000px}
+.toc-list{padding:6px 0}
+.toc-list a{
+  display:flex;align-items:center;gap:12px;
+  padding:11px 16px;color:var(--c-ink);text-decoration:none;
+  border-bottom:1px solid #f5f5f5;font-size:14px;
+}
+.toc-list a:last-child{border-bottom:none}
+.toc-list a:active{background:#f0f0f0}
+.toc-list .day-tag{
+  flex-shrink:0;width:54px;height:36px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:var(--c-accent);color:#fff;border-radius:8px;font-size:11px;line-height:1.1;
+}
+.toc-list .day-tag small{font-size:9px;opacity:.85}
+.toc-list .day-tag.high{background:var(--c-warn)}
+.toc-list .day-title{flex:1}
+.toc-list .day-title small{display:block;color:var(--c-mute);font-size:11px;margin-top:2px}
+
+/* ===== 顶部紧急卡片（红/橙/黄） ===== */
+.alert-card{
+  margin:10px;border-radius:var(--radius);
+  padding:14px 16px;box-shadow:var(--shadow);
+  border-left:5px solid var(--c-warn);
+}
+.alert-card.critical{background:var(--c-warn-bg);border-left-color:var(--c-warn)}
+.alert-card.warn{background:#FFF8E1;border-left-color:var(--c-orange)}
+.alert-card.info{background:#E8F4F8;border-left-color:var(--c-accent)}
+.alert-card h3{font-size:14px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.alert-card p,.alert-card li{font-size:13px;color:var(--c-ink);margin-top:4px}
+.alert-card ul{padding-left:18px;margin-top:6px}
+.alert-card.critical h3{color:var(--c-warn)}
+.alert-card.warn h3{color:#D35400}
+.alert-card.info h3{color:var(--c-accent)}
+
+/* ===== 日期大卡片 ===== */
+.day{
+  margin:14px 10px;background:#fff;border-radius:var(--radius);
+  box-shadow:var(--shadow);overflow:hidden;
+}
+.day-header{
+  padding:14px 16px;color:#fff;display:flex;justify-content:space-between;align-items:center;
+}
+.day-header.d1{background:linear-gradient(135deg,#3498DB,#5DADE2)}
+.day-header.d2{background:linear-gradient(135deg,#16A085,#1ABC9C)}
+.day-header.d3{background:linear-gradient(135deg,#D35400,#E67E22)}
+.day-header.d4{background:linear-gradient(135deg,#B7950B,#D4AC0D)}
+.day-header.d5{background:linear-gradient(135deg,#7D3C98,#9B59B6)}
+.day-header.d6{background:linear-gradient(135deg,#C0392B,#E74C3C)}
+.day-header.d7{background:linear-gradient(135deg,#1F618D,#2874A6)}
+.day-header.d8{background:linear-gradient(135deg,#34495E,#5D6D7E)}
+.day-header .label{font-size:11px;opacity:.85}
+.day-header .title{font-size:17px;font-weight:700;margin-top:2px}
+.day-header .meta{text-align:right;font-size:11px;opacity:.95}
+.day-header .meta strong{display:block;font-size:14px;margin-top:2px}
+
+.day-body{padding:14px 16px}
+
+/* 时间轴 */
+.timeline{position:relative;padding-left:24px}
+.timeline::before{
+  content:'';position:absolute;left:7px;top:6px;bottom:6px;
+  width:2px;background:var(--c-divider);
+}
+.t-item{position:relative;padding-bottom:14px}
+.t-item:last-child{padding-bottom:0}
+.t-item::before{
+  content:'';position:absolute;left:-23px;top:8px;
+  width:10px;height:10px;border-radius:50%;
+  background:var(--c-accent);border:2px solid #fff;
+  box-shadow:0 0 0 2px var(--c-accent);
+}
+.t-item.warn::before{background:var(--c-warn);box-shadow:0 0 0 2px var(--c-warn)}
+.t-item.fix::before{background:var(--c-orange);box-shadow:0 0 0 2px var(--c-orange)}
+.t-item .time{font-size:12px;color:var(--c-mute);font-weight:600;margin-bottom:3px}
+.t-item h4{font-size:14px;font-weight:700;margin-bottom:4px;color:var(--c-ink)}
+.t-item p{font-size:13px;color:#444}
+.t-item .tag{
+  display:inline-block;font-size:10px;padding:2px 7px;border-radius:4px;
+  margin-right:4px;margin-top:4px;
+}
+.tag.alt{background:#FCE4EC;color:#880E4F}
+.tag.alt-pos{background:#E8F5E9;color:#1B5E20}
+.tag.food{background:#FFF3E0;color:#E65100}
+.tag.stay{background:#E3F2FD;color:#0D47A1}
+.tag.fix{background:var(--c-fix);color:#BF360C;font-weight:700;border:1px solid var(--c-orange)}
+.t-item .note{
+  background:#FFFDE7;padding:8px 10px;border-radius:6px;
+  margin-top:6px;font-size:12px;color:#5D4037;
+  border-left:3px solid #FBC02D;
+}
+
+/* 修正提示框 */
+.fix-box{
+  background:var(--c-fix);border:1px dashed var(--c-orange);
+  border-radius:8px;padding:10px 12px;margin:8px 0;font-size:12px;
+}
+.fix-box strong{color:var(--c-orange)}
+
+/* 酒店卡片 */
+.hotel{
+  background:linear-gradient(135deg,#F8F4ED,#FFFFFF);
+  padding:12px;border-radius:10px;margin:8px 0;
+  border:1px solid var(--c-divider);
+}
+.hotel h5{font-size:14px;font-weight:700;color:var(--c-accent);margin-bottom:4px}
+.hotel p{font-size:12px;color:#555;margin-top:3px}
+
+/* 美食小卡 */
+.food-grid{display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px}
+.food-item{
+  padding:10px;background:#FFFBF2;border-radius:8px;border:1px solid #FFE0B2;
+}
+.food-item h5{font-size:13px;font-weight:700;color:#E65100;margin-bottom:2px}
+.food-item p{font-size:12px;color:#555}
+
+/* 段标题 */
+.section-head{
+  font-size:13px;font-weight:700;color:var(--c-accent);
+  padding:8px 0 6px;border-bottom:1px dashed var(--c-divider);
+  margin:10px 0 8px;
+}
+
+/* 海拔/天气横条 */
+.alt-row{
+  display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;
+}
+.alt-pill{
+  padding:4px 9px;border-radius:16px;font-size:11px;
+  background:#E8EEF7;color:var(--c-accent);
+}
+.alt-pill.high{background:#FCE4EC;color:#C0392B}
+.alt-pill.weather{background:#E0F2F1;color:#00695C}
+
+/* 底部预算 + 提醒 */
+.bottom-box{
+  margin:14px 10px;background:#fff;border-radius:var(--radius);
+  padding:14px 16px;box-shadow:var(--shadow);
+}
+.bottom-box h3{font-size:15px;font-weight:700;margin-bottom:8px;color:var(--c-accent)}
+
+/* 快速跳转按钮 */
+.fab{
+  position:fixed;bottom:20px;right:16px;
+  width:46px;height:46px;border-radius:50%;
+  background:var(--c-accent);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;font-weight:700;text-decoration:none;
+  box-shadow:0 4px 12px rgba(15,76,129,.4);z-index:99;
+  border:none;cursor:pointer;
+}
+
+/* 底部固定操作条 */
+.action-bar{
+  position:fixed;bottom:0;left:0;right:0;
+  background:#fff;border-top:1px solid var(--c-divider);
+  display:flex;padding:8px;gap:6px;z-index:98;
+  box-shadow:0 -2px 8px rgba(0,0,0,.06);
+}
+.action-bar a{
+  flex:1;padding:10px 8px;text-align:center;
+  background:#F5F5F5;border-radius:8px;font-size:12px;
+  color:var(--c-ink);text-decoration:none;font-weight:600;
+}
+.action-bar a:active{background:#E0E0E0}
+.action-bar a.primary{background:var(--c-accent);color:#fff}
+
+/* 严重提示条 */
+.error{color:var(--c-warn);font-weight:700}
+
+@media (max-width:380px){
+  .topbar h1{font-size:16px}
+  .day-header .title{font-size:15px}
+  .t-item h4{font-size:13px}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== 顶部信息 ===== -->
+<header class="topbar">
+  <h1>🗺️ 喀什+帕米尔 · 8天8晚家庭游</h1>
+  <div class="sub">最终版 v3 · 已联网核验 + 严谨性优化</div>
+  <div class="quick-stats">
+    <span class="chip">📅 7/18–7/26</span>
+    <span class="chip">👨‍👩‍👦‍👦 6人</span>
+    <span class="chip">🚐 GL8七座</span>
+    <span class="chip">❌ 不吃辣</span>
+  </div>
+</header>
+
+<!-- ===== 爸爸制作 · 手绘水彩封面图 ===== -->
+<section class="hero-cover">
+  <img src="cover.png" alt="喀什+帕米尔 8天8晚 · 家庭自驾环线 · 手绘水彩地图" />
+  <div class="hero-credit">✦ 爸爸制作 · 聚鑫 image2 手绘水彩 ✦</div>
+</section>
+
+<style>
+.hero-cover {
+  position: relative;
+  margin: 10px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  background: #FBF7F1;
+}
+.hero-cover img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.hero-credit {
+  position: absolute;
+  bottom: 12px;
+  right: 14px;
+  padding: 5px 12px;
+  background: rgba(255,255,255,0.92);
+  color: var(--c-ink);
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  letter-spacing: 0.5px;
+}
+</style>
+
+<!-- ===== 三段急迫提醒 ===== -->
+<div class="alert-card critical">
+  <h3>🚨 抵喀什当天必办 · 5人边防证</h3>
+  <p><strong>Day1 下午</strong> 父母+2娃需到<strong>古城警务站 / 边境管理支队办证点</strong>刷脸免费办</p>
+  <ul>
+    <li>前往地填"<strong>塔什库尔干塔吉克自治县</strong>"</li>
+    <li>一人一证，监护人代办孩子</li>
+    <li>你的已在<strong>移民局12367</strong>线上办好，无需再办</li>
+    <li>📍 优先<strong>酒店附近警务室</strong>查最近点位</li>
+  </ul>
+</div>
+
+<div class="alert-card warn">
+  <h3>⚠️ 联网核实后的核心修正（必看）</h3>
+  <ul>
+    <li><strong>「下坂地水库施工→蓝湖干涸」</strong>：未找到 2026 上半年权威施工证据，建议降级为"5–10 月丰水期正常蓝湖"</li>
+    <li><strong>盘龙古道 GL8 可进</strong>：除7座限制外，还查<strong>外廓尺寸 长5213/高1878/宽1878/轴距3088mm</strong> 均＜限值 ✅ 放心</li>
+    <li><strong>班迪尔蓝湖</strong>：2026-05-02 塔县文旅公告禁止<strong>周边徒步/露营</strong>，自驾仅可<strong>公路/桥上拍照</strong>，禁止进山</li>
+    <li><strong>门票修正</strong>：喀拉库勒湖实际<strong>¥90/人</strong>(门票40+区间车50)，慕士塔格冰川<strong>¥93/人</strong>，原 MD 略低</li>
+    <li><strong>Day3 时间紧</strong>：建议<strong>8:00 提早出发</strong>，否则赶不上塔县 22:00 金草滩日落（详 Day3 卡）</li>
+    <li><strong>Day8 莎车→喀什半日</strong>时间紧张，建议<strong>干果市场改 Day6 晚 / Day7 出发前</strong>采购</li>
+  </ul>
+</div>
+
+<div class="alert-card info">
+  <h3>🌤️ 高原天气预报（已联网）</h3>
+  <ul>
+    <li><strong>塔县 7/20（Day3）</strong>：阵雨转晴 10–26℃ ｜ 夜间 8–11℃，昼夜差 15℃+</li>
+    <li><strong>塔县 7/21（Day4）</strong>：多云转阵雨 10–25℃</li>
+    <li><strong>喀什平原</strong>：35–40℃ 干热，<strong>7/20 高达 40℃</strong>，正午躲室内</li>
+    <li><strong>风</strong>：帕米尔景区 6–7 级西北阵风；红其拉甫国门一带可能雨夹雪</li>
+    <li>📌 洋葱式叠穿：短袖+薄外套+防风冲锋衣/薄羽绒</li>
+  </ul>
+</div>
+
+<!-- ===== 折叠目录 ===== -->
+<div class="toc">
+  <button class="toc-toggle" id="tocBtn">
+    <span>🧭 8天行程目录（点开跳转）</span>
+    <span class="arrow">▼</span>
+  </button>
+  <div class="toc-body" id="tocBody">
+    <div class="toc-list">
+      <a href="#day1"><div class="day-tag">DAY<br><small>1</small></div><div class="day-title">北京→喀什直飞<small>7/18 周六 · 抵达+取车</small></div></a>
+      <a href="#day2"><div class="day-tag">DAY<br><small>2</small></div><div class="day-title">牛羊大巴扎+遇见喀什<small>7/19 周日 · 古城市井日</small></div></a>
+      <a href="#day3"><div class="day-tag day-tag high">DAY<br><small>3</small></div><div class="day-title">赴塔县 · 340km<small>7/20 周一 · ⚠️当天阵雨</small></div></a>
+      <a href="#day4"><div class="day-tag day-tag high">DAY<br><small>4</small></div><div class="day-title">塔县全天 · 盘龙古道<small>7/21 周二 · ⚠️当天多云转雨</small></div></a>
+      <a href="#day5"><div class="day-tag">DAY<br><small>5</small></div><div class="day-title">塔县→喀什返程<small>7/22 周三 · 可二刷白沙湖</small></div></a>
+      <a href="#day6"><div class="day-tag">DAY<br><small>6</small></div><div class="day-title">喀什松弛人文日<small>7/23 周四 · 不出城·避暑</small></div></a>
+      <a href="#day7"><div class="day-tag day-tag high">DAY<br><small>7</small></div><div class="day-title">喀什→莎车 195km<small>7/24 周五 · ⚠️长途日</small></div></a>
+      <a href="#day8"><div class="day-tag day-tag high">DAY<br><small>8</small></div><div class="day-title">莎车→喀什→机场<small>7/25 周六 · ⚠️还车日</small></div></a>
+      <a href="#budget"><div class="day-tag" style="background:#27AE60">¥<br><small>预</small></div><div class="day-title">总预算+必办清单<small>终极核对表</small></div></a>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Day 1 ===== -->
+<section class="day" id="day1">
+  <div class="day-header d1">
+    <div>
+      <div class="label">DAY 1 · 7/18 周六</div>
+      <div class="title">✈️ 北京→喀什直飞+取车</div>
+    </div>
+    <div class="meta"><small>海拔/天气</small><strong>1,300m · 35–40℃</strong></div>
+  </div>
+  <div class="day-body">
+    <div class="section-head">⏱ 时间轴</div>
+    <div class="timeline">
+      <div class="t-item">
+        <div class="time">07:00</div>
+        <h4>出发去大兴机场</h4>
+        <p>预留 2h 安检+候机</p>
+      </div>
+      <div class="t-item">
+        <div class="time">09:15 → 14:55</div>
+        <h4>✈️ CZ8843 直飞喀什</h4>
+        <p>南航 · 5h40m · 含正餐</p>
+      </div>
+      <div class="t-item fix">
+        <div class="time">15:00</div>
+        <h4>🚐 徕宁机场 T2 取车 <span class="tag fix">核验</span></h4>
+        <p>取 GL8，<strong>验车+拍现有划痕</strong>，检查儿童座椅（自带或租），加满油</p>
+        <div class="note">⚠️ 第一次办边防证可在此问柜台，"古城警务站"具体位置</div>
+      </div>
+      <div class="t-item">
+        <div class="time">15:40</div>
+        <h4>🏨 入住建国璞隐（古城景区店）</h4>
+        <p>约 30min · 凌霜居双床房 × 2 · 已付 ¥1,722</p>
+      </div>
+      <div class="t-item fix">
+        <div class="time">17:00</div>
+        <h4>🪪 全员办边防证（5人）<span class="tag fix">必办</span></h4>
+        <p>办证地点：<strong>古城警务站/边境管理支队办证点</strong>，刷脸免费，前往地填"<strong>塔什库尔干塔吉克自治县</strong>"，监护人代办孩子</p>
+        <div class="fix-box"><strong>🔴 没有这5张证，Day3–4 进不去塔县</strong>；建议先办完再逛古城</div>
+      </div>
+      <div class="t-item">
+        <div class="time">19:30</div>
+        <h4>🌃 汗巴扎夜市</h4>
+        <p>烤鸽子 · 石榴汁 · 冰蕊酸奶粽子（孩子爱）</p>
+        <p>📌 儿童少辣，吃完逛古城夜景，22:00 才日落</p>
+      </div>
+    </div>
+
+    <div class="section-head">🏨 今晚酒店</div>
+    <div class="hotel">
+      <h5>建国璞隐酒店（喀什古城景区店）</h5>
+      <p>📍 丝路印象（古城景区内，近东门）</p>
+      <p>🛏️ 凌霜居双床房 × 2（梦百合零压床） · 带停车</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Day 2 ===== -->
+<section class="day" id="day2">
+  <div class="day-header d2">
+    <div>
+      <div class="label">DAY 2 · 7/19 周日</div>
+      <div class="title">🐑 牛羊大巴扎 + 遇见喀什</div>
+    </div>
+    <div class="meta"><small>海拔/天气</small><strong>1,300m · 35–40℃</strong></div>
+  </div>
+  <div class="day-body">
+    <div class="section-head">⏱ 时间轴</div>
+    <div class="timeline">
+      <div class="t-item">
+        <div class="time">09:00</div>
+        <h4>酒店早餐</h4>
+        <p>新疆生物钟≈9:00，不算早</p>
+      </div>
+      <div class="t-item">
+        <div class="time">09:30</div>
+        <h4>🚐 出发 → 牛羊大巴扎</h4>
+        <p>荒地乡 · 314国道旁 · GL8 约 30min（25–30元打车也可）</p>
+      </div>
+      <div class="t-item">
+        <div class="time">10:00–13:00</div>
+        <h4>🐂 牛羊大巴扎（亚洲最大活畜市场）</h4>
+        <p>免费 · <strong>7/19 正周日，开市</strong> · 现场红柳烤肉/烤包子午餐</p>
+        <div class="note">⚠️ 尘土大+牲畜味，<strong>穿耐脏鞋+戴口罩+消毒湿巾</strong>；拍照先微笑示意；<strong>禁飞无人机</strong></div>
+      </div>
+      <div class="t-item">
+        <div class="time">13:30</div>
+        <h4>🍲 凯麦尔丁蓝鸽子（清淡温补）</h4>
+        <p>色满路与解放北路 · 清炖乳鸽 ¥25–30 + 鸽子汤续碗</p>
+      </div>
+      <div class="t-item">
+        <div class="time">15:00</div>
+        <h4>酒店小憩</h4>
+        <p>避开正午高温</p>
+      </div>
+      <div class="t-item">
+        <div class="time">16:00–17:40</div>
+        <h4>🎭 《遇见喀什》沉浸式演出</h4>
+        <p>古城东门对面 · ¥199–338/人 · 约 100min</p>
+        <p>📌 <strong>周二–周日</strong>有 16:00 / 21:30 两场（21:30 太晚不建议）</p>
+      </div>
+      <div class="t-item">
+        <div class="time">18:30</div>
+        <h4>🍜 白公羊过油肉拌面（不辣！）</h4>
+        <p>库如克铁热克二巷 · 过油肉拌面 ¥15 · <strong>点单说"小孩吃、不要辣"</strong></p>
+      </div>
+      <div class="t-item">
+        <div class="time">20:00</div>
+        <h4>🌃 古城东门夜景 + 汗巴扎消食</h4>
+      </div>
+    </div>
+
+    <div class="section-head">🛡 严谨性提示</div>
+    <div class="fix-box">
+      <strong>《遇见喀什》</strong>周一休演，<strong>7/19 周日 16:00 场是稳妥选</strong>。Day1 是周六，原计划未排，可保留作灵活性
+    </div>
+  </div>
+</section>
+
+<!-- ===== Day 3 ===== -->
+<section class="day" id="day3">
+  <div class="day-header d3">
+    <div>
+      <div class="label">DAY 3 · 7/20 周一</div>
+      <div class="title">🏔️ 喀什 → 塔县 340km</div>
+    </div>
+    <div class="meta"><small>海拔/天气</small><strong>最高3,600m · 阵雨</strong></div>
+  </div>
+  <div class="day-body">
+
+    <div class="fix-box">
+      <strong>🔧 时间修正：建议提早到 8:00 出发</strong><br>
+      原计划 9:00 出发，途中吃饭+玩 2h 会压成 20:30 才到塔县，赶不上 22:00 金草滩日落。提前 1h，留出充裕午餐时间
+    </div>
+
+    <div class="section-head">⏱ 时间轴（建议版）</div>
+    <div class="timeline">
+      <div class="t-item fix">
+        <div class="time">08:00</div>
+        <h4>🚐 GL8 加满油出发 <span class="tag fix">修正</span></h4>
+        <p>随身：氧气瓶 + 干粮水 + 雨具</p>
+      </div>
+      <div class="t-item">
+        <div class="time">10:00</div>
+        <h4>❄️ 奥依塔克冰川（克州冰川公园）</h4>
+        <p>海拔 2,800–3,000m · G314 约 120km/2h · 门票 ¥45+区间 ¥6</p>
+        <p>📌 全家适宜现代冰川，可触摸蓝冰，约 2h</p>
+      </div>
+      <div class="t-item">
+        <div class="time">12:30</div>
+        <h4>路餐（奥依塔克或白沙湖东岸）</h4>
+        <p><strong>白沙湖无商业设施</strong>，提前买干粮</p>
+      </div>
+      <div class="t-item">
+        <div class="time">14:00</div>
+        <h4>🏖 白沙湖</h4>
+        <p>海拔 3,300m · G314 约 80km/1.5h · 北岸免费 / 东/南岸 ¥40 通用</p>
+        <p>📌 <strong>风大</strong>，湖边别久留；有云遮就普通青海</p>
+      </div>
+      <div class="t-item warn">
+        <div class="time">15:30</div>
+        <h4>💎 喀拉库勒湖（看慕士塔格）<span class="tag alt">3,600m</span></h4>
+        <p>~30km / 0.5h · <strong>门票 ¥90/人</strong>(原 MD ¥50 偏低) · <strong>最高点，1.5h 内离开</strong></p>
+        <p>📌 <strong>当天下雨概率高</strong>，慕士塔格峰易被云遮，倒影要运气</p>
+      </div>
+      <div class="t-item">
+        <div class="time">17:30</div>
+        <h4>🚐 塔县方向 · 110km / 约 2h</h4>
+      </div>
+      <div class="t-item">
+        <div class="time">~20:00</div>
+        <h4>🏨 维也纳国际塔县金草滩店（第1晚）</h4>
+        <p>特享双床房 × 2（<strong>弥散式供氧</strong>）· 已付 ¥1,588</p>
+        <p>📌 <strong>开供氧！</strong> 让孩子老人早睡</p>
+      </div>
+      <div class="t-item warn">
+        <div class="time">21:00–22:30</div>
+        <h4>🌅 石头城+金草滩日落（步行可达）</h4>
+        <p>联票 ¥40+区间 ¥11 · 22 点才日落，<strong>高原 golden hour 1.5h</strong></p>
+        <div class="note">⏰ 原计划 19:30 牦牛火锅 → <strong>建议提前到酒店旁吃</strong>，省出日落时间</div>
+      </div>
+    </div>
+
+    <div class="alt-row">
+      <span class="alt-pill high">⛰ 最高 3,600m</span>
+      <span class="alt-pill weather">🌧 阵雨转晴</span>
+      <span class="alt-pill weather">🌡 8–26℃</span>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Day 4 ===== -->
+<section class="day" id="day4">
+  <div class="day-header d4">
+    <div>
+      <div class="label">DAY 4 · 7/21 周二</div>
+      <div class="title">🐉 塔县全天 · 盘龙古道</div>
+    </div>
+    <div class="meta"><small>海拔/天气</small><strong>最高4,200m · 多云转雨</strong></div>
+  </div>
+  <div class="day-body">
+
+    <div class="fix-box">
+      <strong>🔧 蓝湖拍照降级为「打卡式 20min」</strong><br>
+      若蓝湖超过 30 分钟，盘龙古道全段 36km（限速 30，2.5–3h）可能来不及完成。优先级：盘龙 > 蓝湖
+    </div>
+
+    <div class="section-head">⏱ 时间轴</div>
+    <div class="timeline">
+      <div class="t-item">
+        <div class="time">09:00</div>
+        <h4>🚐 塔县 → 班迪尔蓝湖</h4>
+        <p>约 70km / 1.5h · 中巴友谊公路南段</p>
+        <p>📌 <strong>仅在公路/桥上停车拍摄</strong>（5月公告禁止进山徒步）</p>
+      </div>
+      <div class="t-item warn">
+        <div class="time">~10:20</div>
+        <h4>📸 蓝湖打卡 20min</h4>
+        <p>7 月普通丰水蓝湖（<strong>土星环仅 3–4 月</strong>）；非景区，注意落石/塌方风险</p>
+      </div>
+      <div class="t-item warn">
+        <div class="time">10:30</div>
+        <h4>🐉 盘龙古道（<strong>班迪尔乡进 → 瓦恰乡出</strong>）</h4>
+        <p>单行 36km / 限速 30 / 2.5–3h · 10:00–19:00 开放 · 18:30 清场</p>
+        <div class="fix-box">
+          <strong>✅ GL8=7座可进</strong><br>
+          外廓尺寸核对：长 5213 / 高 1878 / 宽 1878 / 轴距 3088 mm → <strong>均 ＜ 限值</strong>(5500/2000/2400/3200)，放心
+        </div>
+      </div>
+      <div class="t-item">
+        <div class="time">13:30</div>
+        <h4>瓦恰乡出口 → 中巴友谊公路北返</h4>
+        <p>~130km / 2.5–3h · 慕士塔格峰远观，喀拉库勒可补拍</p>
+      </div>
+      <div class="t-item">
+        <div class="time">~17:00</div>
+        <h4>🏨 维也纳国际塔县店（第2晚）</h4>
+        <p>📌 开供氧 · 晚餐牦牛肉火锅（清淡款）</p>
+      </div>
+    </div>
+
+    <div class="section-head">🛡 雨天决策</div>
+    <div class="fix-box">
+      <strong>⚠️ 雨雾天盘龙古道封路</strong>：放弃盘龙，改"蓝湖 + 石头城金草滩"悠闲日，全家别硬冲
+    </div>
+
+    <div class="alt-row">
+      <span class="alt-pill high">⛰ 最高 4,200m</span>
+      <span class="alt-pill weather">⛅ 多云转雨</span>
+      <span class="alt-pill weather">🌡 10–25℃</span>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Day 5 ===== -->
+<section class="day" id="day5">
+  <div class="day-header d5">
+    <div>
+      <div class="label">DAY 5 · 7/22 周三</div>
+      <div class="title">↩️ 塔县 → 喀什返程</div>
+    </div>
+    <div class="meta"><small>海拔/天气</small><strong>渐降 · 35–40℃</strong></div>
+  </div>
+  <div class="day-body">
+    <div class="section-head">⏱ 时间轴</div>
+    <div class="timeline">
+      <div class="t-item">
+        <div class="time">09:00</div>
+        <h4>🚐 退房 · 返回喀什</h4>
+        <p>~300km / 5–6h · 中巴友谊公路 G314 北段</p>
+      </div>
+      <div class="t-item">
+        <div class="time">途中</div>
+        <h4>二刷白沙湖 / 奥依塔克冰川</h4>
+        <p><strong>若 Day3 遇雨没拍好湖景</strong>，今天可重点补</p>
+      </div>
+      <div class="t-item">
+        <div class="time">~15:00</div>
+        <h4>🏨 入住柏纳S酒店（香妃园景区店）</h4>
+        <p>豪华双床房 × 2 · 智能客控 · 已付 ¥1,300</p>
+      </div>
+      <div class="t-item">
+        <div class="time">18:00</div>
+        <h4>🍲 阿布爷爷古城缸子肉</h4>
+        <p>阿热亚路与恰萨路 · 缸子肉 ¥20–25 · <strong>点单说"小孩吃、肉再煮烂点"</strong></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Day 6 ===== -->
+<section class="day" id="day6">
+  <div class="day-header d6">
+    <div>
+      <div class="label">DAY 6 · 7/23 周四</div>
+      <div class="title">🏛️ 喀什松弛人文日（不出城）</div>
+    </div>
+    <div class="meta"><small>海拔/天气</small><strong>1,300m · 35–40℃</strong></div>
+  </div>
+  <div class="day-body">
+    <div class="fix-box">
+      <strong>🔧 干果市场采购挪到今晚上 / 明早出发前</strong><br>
+      避免 Day8 半天不够用
+    </div>
+
+    <div class="section-head">⏱ 时间轴</div>
+    <div class="timeline">
+      <div class="t-item warn">
+        <div class="time">09:00</div>
+        <h4>🍚 艾力扎提抓饭馆（早午餐）</h4>
+        <p>塔吾古孜路 17 号 · 羊肉抓饭 ¥30 + 薄皮包子 ¥3</p>
+        <div class="note"><strong>⚠️ 只做早午餐 9:00–12:00</strong>，售完即止，必须 11:00 前到！</div>
+      </div>
+      <div class="t-item">
+        <div class="time">10:30</div>
+        <h4>🏺 高台民居·吾麦尔艾力土陶手作</h4>
+        <p>室内避暑 1.5h · 亲子捏陶</p>
+      </div>
+      <div class="t-item">
+        <div class="time">12:30</div>
+        <h4>🎵 疏附民族乐器村</h4>
+        <p>距古城 6–7km · 免费 · 中国新疆民族乐器博物馆(83种乐器可试奏可手作)</p>
+      </div>
+      <div class="t-item">
+        <div class="time">14:00</div>
+        <h4>🍜 白公羊过油肉拌面（不辣）</h4>
+      </div>
+      <div class="t-item">
+        <div class="time">15:00</div>
+        <h4>🏛 喀什地区博物馆 <span class="tag fix">必预约</span></h4>
+        <p>天山西路 28 号 · 免费 · 微信"<strong>喀什地区博物馆服务号</strong>"预约</p>
+        <p>📌 <strong>周一闭馆</strong>（7/23 周四 OK）· 蹭人工讲解 2–3h</p>
+      </div>
+      <div class="t-item">
+        <div class="time">17:30</div>
+        <h4>🌸 香妃园</h4>
+        <p>¥40（<strong>官方/美团提前购比现场便宜</strong>） · 60–64 半价 · 65+ 免</p>
+      </div>
+      <div class="t-item">
+        <div class="time">19:30</div>
+        <h4>🌃 汗巴扎告别晚餐 + 7月瓜果</h4>
+        <p><strong>伽师瓜正季</strong> · 石榴汁 · 买干果（建议今晚上完成）</p>
+      </div>
+    </div>
+
+    <div class="section-head">🍽 美食推荐（适孩子）</div>
+    <div class="food-grid">
+      <div class="food-item">
+        <h5>🍚 艾力扎提抓饭馆</h5>
+        <p>只做早午餐 9–12 点 · 抓饭 ¥30 · 薄皮包子 ¥3 · 自制酸奶 ¥5</p>
+      </div>
+      <div class="food-item">
+        <h5>🐦 凯麦尔丁蓝鸽子</h5>
+        <p>清炖乳鸽 ¥25–30 · 鸽子汤免费续 · 老人小孩最宜</p>
+      </div>
+      <div class="food-item">
+        <h5>🍖 阿布爷爷古城缸子肉</h5>
+        <p>缸子肉 ¥20–25 · 窝窝馕 ¥3 · 让孩子吃可要求"再煮一下"</p>
+      </div>
+      <div class="food-item">
+        <h5>🍜 白公羊过油肉拌面</h5>
+        <p>过油肉拌面 ¥15 · <strong>务必"小孩吃、不要辣"</strong></p>
+      </div>
+      <div class="food-item">
+        <h5>🥯 爷爷的爷爷的爸爸的馕</h5>
+        <p>玫瑰花馕 ¥3 · 当伴手礼，别当正餐</p>
+      </div>
+      <div class="food-item">
+        <h5>☕ 百年老茶馆</h5>
+        <p>冰糖茯茶招牌 · 当文化体验不吃饭 · 二楼茶座</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Day 7 ===== -->
+<section class="day" id="day7">
+  <div class="day-header d7">
+    <div>
+      <div class="label">DAY 7 · 7/24 周五</div>
+      <div class="title">🛣 喀什→莎车 195km（⚠️长途日）</div>
+    </div>
+    <div class="meta"><small>海拔/天气</small><strong>1,300–1,500m · 高温</strong></div>
+  </div>
+  <div class="day-body">
+    <div class="section-head">⏱ 时间轴</div>
+    <div class="timeline">
+      <div class="t-item">
+        <div class="time">09:30</div>
+        <h4>🚐 喀什退房 → G3012 吐和高速 → 莎车</h4>
+        <p>195km / 2.6h · <strong>莎车不需边防证</strong></p>
+      </div>
+      <div class="t-item">
+        <div class="time">12:00</div>
+        <h4>午餐（戈尔巴格夜市附近）</h4>
+        <p>烤鸽子/烤包子/羊肉汤（不辣）</p>
+      </div>
+      <div class="t-item">
+        <div class="time">13:30</div>
+        <h4>🕌 阿曼尼莎汗纪念陵</h4>
+        <p>¥15 · 10:00–19:30 · 蓝顶王陵</p>
+      </div>
+      <div class="t-item">
+        <div class="time">~14:30</div>
+        <h4>🎨 喀赞其老街</h4>
+        <p>免费 · 陶罐巷/彩绘木门出片</p>
+      </div>
+      <div class="t-item">
+        <div class="time">15:30</div>
+        <h4>🎼 木卡姆博物馆/老城艺术中心</h4>
+        <p>室内避暑 · 十二木卡姆主题展</p>
+      </div>
+      <div class="t-item warn">
+        <div class="time">16:30</div>
+        <h4>🎵 十二木卡姆演出<span class="tag alt">必看</span></h4>
+        <p>老城文化中心 · ¥25–30/人 · 约 1h · <strong>17:00 场最稳</strong></p>
+        <p>📌 不指定座位，<strong>提前半小时到</strong> · 这趟最大独特看点</p>
+      </div>
+      <div class="t-item">
+        <div class="time">18:30</div>
+        <h4>🍵 老电影茶馆</h4>
+        <p>特制茶 + 酸奶粽子 + 维族弹唱（百年老店）</p>
+      </div>
+      <div class="t-item">
+        <div class="time">20:00</div>
+        <h4>🌃 戈尔巴格夜市简餐</h4>
+      </div>
+      <div class="t-item">
+        <div class="time">~21:00</div>
+        <h4>🏨 格林豪泰莎车政务中心店（1晚）</h4>
+        <p>高级双床房 × 2 · 已付 ¥450 · 带停车</p>
+      </div>
+    </div>
+
+    <div class="section-head">⚠️ 莎车注意事项</div>
+    <div class="fix-box">
+      <strong>❌ 叶尔羌汗王宫</strong>：闭园维修，只外观，别白跑<br>
+      <strong>⚠️ 买开刃小刀</strong>：必须<strong>快递邮寄</strong>，不能随身带飞机/火车（登记身份证）
+    </div>
+  </div>
+</section>
+
+<!-- ===== Day 8 ===== -->
+<section class="day" id="day8">
+  <div class="day-header d8">
+    <div>
+      <div class="label">DAY 8 · 7/25 周六</div>
+      <div class="title">✈️ 莎车→喀什→机场</div>
+    </div>
+    <div class="meta"><small>航班</small><strong>20:00+ 起飞</strong></div>
+  </div>
+  <div class="day-body">
+
+    <div class="fix-box">
+      <strong>🔧 莎车出发建议提前到 08:30（不晚于 09:00）</strong><br>
+      留下充足半日游时间，否则 14:00 后只能直奔机场
+    </div>
+
+    <div class="section-head">⏱ 时间轴</div>
+    <div class="timeline">
+      <div class="t-item">
+        <div class="time">08:30</div>
+        <h4>🚐 莎车退房 → 喀什</h4>
+        <p>192km / 2.6h · 沿途服务区厕所</p>
+      </div>
+      <div class="t-item">
+        <div class="time">11:30</div>
+        <h4>午餐 + 古城散步</h4>
+        <p>推荐<strong>艾尼纯羊烤肉店</strong>（古城北）· 缸子肉 ¥20 · 红柳烤肉 ¥10</p>
+      </div>
+      <div class="t-item">
+        <div class="time">14:00</div>
+        <h4>☕ 古城咖啡 / 最后一逛</h4>
+      </div>
+      <div class="t-item">
+        <div class="time">15:30</div>
+        <h4>🚐 出发去机场</h4>
+        <p>约 20–30min · 市区→徕宁 T2</p>
+      </div>
+      <div class="t-item warn">
+        <div class="time">16:00</div>
+        <h4>机场还 GL8 + 值机<span class="tag fix">关键</span></h4>
+        <p>还车柜台在 T2 到大厅附近 · <strong>留 3h 安检+候机</strong></p>
+        <p>📌 行李直挂乌鲁木齐 · 7/26 00:20 到京 ⚠️ <strong>提前安排接机</strong></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== 预算+必办 ===== -->
+<section class="bottom-box" id="budget">
+  <h3>💰 总预算（6人 · 不含机票）</h3>
+  <ul style="padding-left:20px;font-size:13px">
+    <li>住宿 7 晚：¥5,060（已订）</li>
+    <li>油费+过路：~¥800</li>
+    <li>门票+景区交通（含《遇见喀什》）：~¥3,000 <span style="color:#C0392B">↑ 按核验后票价调</span></li>
+    <li>餐饮 8 天：~¥7,200</li>
+    <li>其他（氧气瓶/零食/伴手礼）：~¥2,000</li>
+    <li><strong>合计：≈¥18,000</strong>（不含机票 · GL8 已付单列）</li>
+  </ul>
+
+  <h3 style="margin-top:18px">📋 必办清单（终极打勾）</h3>
+  <div style="font-size:13px;line-height:1.9">
+    <p>☐ 你的边防证已线上办好（无需再做）</p>
+    <p>☐ Day1 抵达下午：<strong>5人边防证</strong>（古城警务站，刷脸免费）</p>
+    <p>☐ 出前 7 天：<strong>喀什博物馆预约</strong>（微信"喀什地区博物馆服务号"）</p>
+    <p>☐ 出前 3 天：<strong>香妃园门票</strong>（官方公众号/美团）</p>
+    <p>☐ 携程购：十二木卡姆演出（莎车）¥25–30</p>
+    <p>☐ GL8 验车+拍现有划痕（提车时）</p>
+    <p>☐ 氧气瓶×2（随车+房间备用）</p>
+    <p>☐ 儿童座椅（GL8 可租或自带）</p>
+    <p>☐ 接机安排（7/26 00:20 到京 ⚠️）</p>
+  </div>
+
+  <h3 style="margin-top:18px">📦 行前清单</h3>
+  <ul style="padding-left:20px;font-size:13px;line-height:1.8">
+    <li>🪪 全员身份证 + 5 张边防证</li>
+    <li>👕 短袖薄裤 + 防风冲锋衣/薄羽绒（洋葱式）</li>
+    <li>☀️ SPF50+ 防晒霜 · 墨镜 · 宽檐帽 · 润唇膏 · 护手霜 · 面膜</li>
+    <li>🌧 折叠伞/雨衣（塔县多雨）</li>
+    <li>💊 肠胃药 · 退烧药 · 创可贴 · 儿童常用药 · 葡萄糖</li>
+    <li>📱 充电宝 · 离线地图 · U型枕（GL8 长途）</li>
+  </ul>
+</section>
+
+<!-- ===== 浮动按钮 ===== -->
+<button class="fab" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="回顶部">↑</button>
+
+<!-- ===== 底部固定操作条 ===== -->
+<div class="action-bar">
+  <a href="tel:0998-6460888">📞 喀什旅游</a>
+  <a href="#" onclick="toggleToc();return false">📑 目录</a>
+  <a href="#day1" class="primary">🚀 Day1</a>
+</div>
+
+<script>
+// 折叠菜单
+document.getElementById('tocBtn').addEventListener('click',function(){
+  this.classList.toggle('open');
+  document.getElementById('tocBody').classList.toggle('open');
+});
+function toggleToc(){
+  document.getElementById('tocBtn').classList.toggle('open');
+  document.getElementById('tocBody').classList.toggle('open');
+}
+// 自动滚到锚点时高亮（轻量）
+window.addEventListener('scroll',function(){
+  const sections=document.querySelectorAll('section.day,.bottom-box');
+  let cur='';
+  sections.forEach(s=>{
+    const r=s.getBoundingClientRect();
+    if(r.top<=120) cur=s.id;
+  });
+  document.querySelectorAll('.toc-list a').forEach(a=>{
+    a.style.background='';
+    if(a.getAttribute('href')==='#'+cur) a.style.background='#FFF8E1';
+  });
+});
+</script>
+</body>
+</html>
