@@ -1,0 +1,1777 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<title>认时钟小课堂 v2 · 一二年级都能用</title>
+<style>
+:root{
+  --bg1:#FFF7EA; --bg2:#E8F4FF;
+  --card:#FFFFFF;
+  --ink:#2E3A4B;
+  --ink-soft:#6B7C91;
+  --line:#EAEFF6;
+  --accent:#FF9F43;
+  --accent-d:#EE8A22;
+  --blue:#3B82F6;
+  --pink:#FF5C7A;
+  --green:#1FAE6A;
+  --red:#E8534F;
+  --r:22px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,-apple-system,sans-serif;
+  color:var(--ink);
+  background:linear-gradient(160deg,var(--bg1) 0%, var(--bg2) 100%);
+  background-attachment:fixed;
+  min-height:100vh;
+  padding:14px 14px 34px;
+  -webkit-user-select:none;user-select:none;
+}
+.shell{max-width:1000px;margin:0 auto}
+
+/* ---------- 顶栏 ---------- */
+.topbar{
+  display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;
+  gap:12px;margin-bottom:12px;padding:0 4px;
+}
+.brand{font-size:22px;font-weight:800;letter-spacing:.5px;display:flex;align-items:center;gap:8px}
+.brand .ico{font-size:26px}
+.brand small{
+  font-size:12px;font-weight:600;color:#fff;background:var(--accent);
+  padding:3px 9px;border-radius:20px;letter-spacing:0;
+}
+.score{
+  font-size:15px;font-weight:700;color:var(--ink-soft);
+  background:#fff;border:2px solid #FFE3BC;border-radius:20px;
+  padding:6px 14px;white-space:nowrap;
+}
+.score b{color:var(--accent-d);font-size:19px}
+
+/* ---------- 模式切换 ---------- */
+.tabs{
+  display:flex;flex-wrap:wrap;justify-content:center;gap:6px;
+  background:#fff;padding:7px;border-radius:18px;
+  box-shadow:0 4px 14px rgba(90,120,160,.10);margin-bottom:16px;
+}
+.tab{
+  flex:1 1 92px;min-width:92px;max-width:190px;
+  border:0;background:transparent;cursor:pointer;
+  font-family:inherit;font-size:14px;font-weight:700;color:var(--ink-soft);
+  padding:12px 4px;border-radius:13px;transition:.18s;
+}
+.tab:hover{background:#FFF6E9;color:var(--accent-d)}
+.tab.active{
+  background:linear-gradient(180deg,#FFB65C,#FF9F43);
+  color:#fff;box-shadow:0 4px 12px rgba(255,159,67,.42);
+}
+
+/* ---------- 主布局 ---------- */
+.wrap{
+  display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;
+}
+@media (max-width:780px){
+  .wrap{grid-template-columns:1fr;gap:14px}
+  .brand{font-size:19px}
+  .tab{font-size:12.5px;padding:11px 2px;flex:1 1 84px;min-width:84px}
+}
+@media (max-width:430px){
+  body{padding:12px 12px 30px}
+  .brand{font-size:16px;gap:6px}
+  .brand .ico{font-size:20px}
+  .brand small{font-size:11px;padding:2px 6px}
+  .replay{font-size:12px;padding:6px 9px}
+  .score{font-size:12.5px;padding:5px 10px}
+  .score b{font-size:16px}
+  .tab{font-size:12px;flex:0 0 calc(33.333% - 4px);min-width:0;max-width:none;padding:11px 2px}
+}
+.card{
+  background:var(--card);border-radius:var(--r);padding:16px;
+  box-shadow:0 6px 22px rgba(90,120,160,.11);
+}
+
+/* ---------- 时钟 ---------- */
+.clock-card{display:flex;flex-direction:column;align-items:center;gap:10px;position:relative}
+#clock{width:100%;max-width:400px;height:auto;display:block;touch-action:none}
+#clock.grabbable{cursor:grab}
+#clock.grabbing{cursor:grabbing}
+.readout{
+  width:100%;text-align:center;
+  transition:opacity .2s, visibility .2s;
+}
+.readout.hide{visibility:hidden;opacity:0}
+.digital{
+  display:block;font-size:44px;font-weight:800;letter-spacing:2px;
+  color:var(--ink);font-variant-numeric:tabular-nums;line-height:1.1;
+}
+.chinese{display:block;font-size:19px;font-weight:700;color:var(--accent-d);margin-top:2px}
+
+.pop{animation:pop .45s cubic-bezier(.34,1.56,.64,1)}
+@keyframes pop{0%{transform:scale(1)}45%{transform:scale(1.035)}100%{transform:scale(1)}}
+.shake{animation:shake .45s}
+@keyframes shake{
+  0%,100%{transform:translateX(0)}
+  20%{transform:translateX(-7px)}40%{transform:translateX(7px)}
+  60%{transform:translateX(-4px)}80%{transform:translateX(4px)}
+}
+.ring::after{
+  content:"";position:absolute;inset:6px;border-radius:26px;
+  border:4px solid var(--green);opacity:0;pointer-events:none;
+  animation:ring .7s ease-out;
+}
+@keyframes ring{0%{opacity:.9;transform:scale(.97)}100%{opacity:0;transform:scale(1.02)}}
+
+.demoBar{
+  width:100%;display:none;align-items:center;justify-content:center;text-align:center;
+  background:#FFF8EE;border:2px dashed #FFDFB0;border-radius:14px;
+  padding:11px 13px;font-size:15px;font-weight:700;line-height:1.7;min-height:56px;
+}
+.demoBar .p{color:var(--pink);font-weight:900}
+.demoBar .b{color:var(--blue);font-weight:900}
+.demoBar .h{color:var(--accent-d);font-weight:900}
+
+/* ---------- 面板 ---------- */
+.pane{display:none}
+.pane.active{display:block}
+
+.hint-title{font-size:14px;font-weight:800;color:var(--ink-soft);margin:0 0 8px;letter-spacing:.5px}
+.tipbox{
+  background:#FFF8EE;border:2px dashed #FFDFB0;border-radius:15px;
+  padding:12px 14px;font-size:15.5px;line-height:1.75;font-weight:600;
+}
+.tipbox .k{color:var(--pink);font-weight:800}
+.tipbox .b{color:var(--blue);font-weight:800}
+.tipbox .h{color:var(--accent-d);font-weight:800}
+.tipbox .o{color:#E08B00;font-weight:800}
+
+.row{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.btn{
+  font-family:inherit;font-weight:800;font-size:15px;cursor:pointer;
+  border:0;border-radius:14px;padding:12px 18px;transition:.16s;
+  background:#F1F5FA;color:var(--ink);
+}
+.btn:hover{transform:translateY(-1px)}
+.btn:active{transform:translateY(1px)}
+.btn.primary{background:linear-gradient(180deg,#FFB65C,#FF9F43);color:#fff;box-shadow:0 4px 12px rgba(255,159,67,.38)}
+.btn.blue{background:linear-gradient(180deg,#66A5FF,#3B82F6);color:#fff;box-shadow:0 4px 12px rgba(59,130,246,.32)}
+.btn.ghost{background:#fff;border:2px solid var(--line)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+
+.chips{display:flex;gap:7px;flex-wrap:wrap}
+.chip{
+  font-family:inherit;font-weight:700;font-size:14px;cursor:pointer;
+  border:2px solid var(--line);background:#fff;color:var(--ink-soft);
+  padding:8px 14px;border-radius:12px;transition:.16s;
+}
+.chip:hover{border-color:#FFD9A6;color:var(--accent-d)}
+.chip.on{background:#FFF1DC;border-color:var(--accent);color:var(--accent-d)}
+
+.switch{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  font-size:14.5px;font-weight:700;color:var(--ink-soft);
+  padding:9px 0;border-top:1px solid var(--line);margin-top:12px;
+}
+.switch:first-of-type{border-top:0}
+.toggle{
+  position:relative;width:50px;height:29px;border-radius:20px;background:#DCE5EF;
+  border:0;cursor:pointer;transition:.2s;flex:0 0 auto;padding:0;
+}
+.toggle::after{
+  content:"";position:absolute;top:3px;left:3px;width:23px;height:23px;
+  border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 4px rgba(0,0,0,.2);
+}
+.toggle.on{background:var(--green)}
+.toggle.on::after{transform:translateX(21px)}
+
+/* ---------- 出题 ---------- */
+.qbox{
+  background:linear-gradient(180deg,#FFF9F0,#FFF3E2);
+  border:2px solid #FFE3BC;border-radius:16px;padding:15px;text-align:center;
+}
+.qtxt{font-size:16px;font-weight:700;color:var(--ink-soft)}
+.qmain{font-size:31px;font-weight:900;color:var(--accent-d);margin-top:5px;letter-spacing:1px}
+
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.opt{
+  font-family:inherit;font-size:25px;font-weight:800;cursor:pointer;
+  background:#fff;border:2.5px solid var(--line);border-radius:16px;
+  padding:16px 6px;color:var(--ink);transition:.16s;
+  font-variant-numeric:tabular-nums;
+}
+.opt.small{font-size:20px;letter-spacing:0}
+.opt:hover{border-color:#9EC5FF;background:#F6FAFF}
+.opt.right{background:#E6F8EF;border-color:var(--green);color:var(--green)}
+.opt.wrong{background:#FDECEC;border-color:var(--red);color:var(--red)}
+.opt:disabled{cursor:default}
+
+.feedback{
+  margin-top:13px;font-size:16px;font-weight:800;min-height:26px;text-align:center;
+  line-height:1.7;
+}
+.feedback.ok{color:var(--green)}
+.feedback.no{color:var(--red)}
+.feedback .em{color:var(--accent-d)}
+
+.footnote{
+  margin-top:16px;font-size:13px;line-height:1.8;color:#93A3B6;font-weight:600;
+}
+.footnote b{color:var(--ink-soft)}
+
+/* ---------- 生活情境 ---------- */
+.lifegrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.lifecard{
+  font-family:inherit;font-size:16.5px;font-weight:800;cursor:pointer;
+  background:#fff;border:2.5px solid var(--line);border-radius:16px;
+  padding:13px 8px;color:var(--ink);transition:.16s;
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+}
+.lifecard .e{font-size:30px;line-height:1}
+.lifecard:hover{border-color:#9EC5FF;background:#F6FAFF}
+.lifecard.right{background:#E6F8EF;border-color:var(--green);color:var(--green)}
+.lifecard.wrong{background:#FDECEC;border-color:var(--red);color:var(--red)}
+.lifecard:disabled{cursor:default}
+
+/* ---------- 一分钟 ---------- */
+.timer{text-align:center;padding:10px 0 2px}
+.tnum{
+  font-size:74px;font-weight:900;color:var(--accent-d);
+  font-variant-numeric:tabular-nums;line-height:1;
+}
+.tlab{font-size:15px;font-weight:800;color:var(--ink-soft);margin-top:6px}
+.counter{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:16px}
+.cbtn{
+  font-family:inherit;font-size:30px;font-weight:900;cursor:pointer;
+  border:0;border-radius:50%;width:82px;height:82px;
+  background:linear-gradient(180deg,#66A5FF,#3B82F6);color:#fff;
+  box-shadow:0 5px 16px rgba(59,130,246,.35);transition:.14s;
+}
+.cbtn:active{transform:scale(.94)}
+.cbtn.off{background:#DCE5EF;box-shadow:none;color:#8FA2B8;cursor:not-allowed}
+.cnt{
+  font-size:56px;font-weight:900;color:var(--ink);
+  font-variant-numeric:tabular-nums;min-width:110px;text-align:center;
+}
+.cntlab{font-size:13px;font-weight:700;color:#9BAABC;text-align:center}
+
+.statbox{
+  margin-top:12px;background:#F4F8FD;border:2px dashed #CFE0F5;border-radius:15px;
+  padding:12px 14px;font-size:13.5px;line-height:1.9;font-weight:600;color:#5B7085;
+}
+.statbox b{color:#33475F}
+.statbox .bad{color:#C0392B;font-weight:800}
+.statbox .good{color:var(--green);font-weight:800}
+.statbox .clr{
+  display:inline-block;margin-top:6px;font-family:inherit;font-size:12px;font-weight:700;
+  border:2px solid #CFE0F5;background:#fff;color:#7C93AB;border-radius:10px;
+  padding:4px 10px;cursor:pointer;
+}
+
+/* ---------- 开场教学动画 ---------- */
+.intro{
+  position:fixed;inset:0;z-index:99;overflow:auto;
+  background:linear-gradient(160deg,#FFF7EA 0%,#E8F4FF 100%);
+  display:flex;align-items:center;justify-content:center;padding:16px;
+  transition:opacity .45s ease, visibility .45s;
+}
+.intro.gone{opacity:0;visibility:hidden;pointer-events:none}
+.intro-inner{
+  width:100%;max-width:480px;text-align:center;
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+}
+.intro-top{width:100%;display:flex;justify-content:center;align-items:center;gap:9px;margin-bottom:6px}
+.sound{
+  font-family:inherit;font-weight:700;font-size:13.5px;cursor:pointer;
+  border:0;background:rgba(255,255,255,.8);color:var(--ink-soft);
+  padding:8px 14px;border-radius:20px;transition:.16s;box-shadow:0 2px 8px rgba(90,120,160,.10);
+}
+.sound.on{background:#FFF1DC;color:var(--accent-d)}
+.sound:hover{transform:translateY(-1px)}
+
+.startmask{
+  position:absolute;inset:0;z-index:2;
+  background:linear-gradient(160deg,#FFF7EA,#E8F4FF);
+  display:flex;align-items:center;justify-content:center;padding:20px;
+  transition:opacity .3s ease, visibility .3s;
+}
+.startmask.gone{opacity:0;visibility:hidden;pointer-events:none}
+.startcard{
+  text-align:center;background:#fff;border-radius:26px;padding:32px 26px;
+  box-shadow:0 14px 44px rgba(90,120,160,.18);max-width:350px;width:100%;
+}
+.startcard .bigclock{
+  font-size:62px;line-height:1;margin-bottom:10px;
+  animation:bob 2.2s ease-in-out infinite;
+}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+.startcard h2{margin:0 0 10px;font-size:24px;font-weight:900;letter-spacing:1px}
+.startcard p{margin:0;font-size:15px;font-weight:600;color:var(--ink-soft);line-height:1.75}
+.startcard .soundtip{font-size:13px;color:#9BAABC;margin-top:14px}
+.btn.big{font-size:19px;padding:16px 38px;margin-top:18px;border-radius:18px}
+.skip2{
+  display:block;margin:14px auto 0;padding:4px;
+  border:0;background:transparent;cursor:pointer;
+  font-family:inherit;font-size:13px;font-weight:700;color:#9BAABC;
+  text-decoration:underline;text-underline-offset:4px;transition:.16s;
+}
+.skip2:hover{color:var(--accent-d)}
+.skip{
+  font-family:inherit;font-weight:700;font-size:13.5px;cursor:pointer;
+  border:0;background:rgba(255,255,255,.8);color:var(--ink-soft);
+  padding:8px 15px;border-radius:20px;transition:.16s;box-shadow:0 2px 8px rgba(90,120,160,.10);
+}
+.skip:hover{background:#fff;color:var(--accent-d);transform:translateY(-1px)}
+
+#introClock{width:min(290px,58vw);height:auto;display:block;margin:2px 0}
+
+.itime{
+  font-size:38px;font-weight:900;letter-spacing:2px;color:var(--ink);
+  font-variant-numeric:tabular-nums;line-height:1.15;min-height:56px;
+  transition:opacity .3s;
+}
+.itime small{
+  display:block;font-size:16px;font-weight:800;color:var(--accent-d);
+  letter-spacing:0;margin-top:3px;
+}
+
+.icap{
+  font-size:19px;font-weight:700;line-height:1.75;color:var(--ink);
+  min-height:100px;display:flex;align-items:center;justify-content:center;
+  padding:0 6px;transition:opacity .35s;
+}
+#iCapText{width:100%;display:block}
+.icap .p{color:var(--pink);font-weight:900}
+.icap .b{color:var(--blue);font-weight:900}
+.icap .h{color:var(--accent-d);font-weight:900}
+@media (max-width:420px){ .icap{font-size:17px} .itime{font-size:32px} }
+
+.idots{display:flex;gap:7px;justify-content:center;margin:4px 0 10px}
+.idots i{width:8px;height:8px;border-radius:50%;background:#D3DEEA;transition:.28s}
+.idots i.on{background:var(--accent);width:24px;border-radius:5px}
+
+#introNext{min-width:180px;font-size:17px;padding:14px 24px}
+.pop2{animation:pop .4s cubic-bezier(.34,1.56,.64,1)}
+
+.replay{
+  font-family:inherit;font-weight:700;font-size:13.5px;cursor:pointer;
+  border:2px solid #FFE3BC;background:#fff;color:var(--accent-d);
+  padding:7px 13px;border-radius:20px;transition:.16s;white-space:nowrap;
+}
+.replay:hover{background:#FFF7EC;transform:translateY(-1px)}
+</style>
+</head>
+<body>
+
+<!-- ==================== 开场教学动画 ==================== -->
+<div class="intro" id="intro">
+  <div class="intro-inner">
+    <div class="intro-top">
+      <button class="sound on" id="btnSound">🔊 声音</button>
+      <button class="skip" id="introSkip">跳过，直接玩 →</button>
+    </div>
+
+    <svg id="introClock" viewBox="0 0 400 400" aria-hidden="true">
+      <defs>
+        <radialGradient id="faceGrad2" cx="50%" cy="32%" r="78%">
+          <stop offset="0%" stop-color="#FFFFFF"/>
+          <stop offset="100%" stop-color="#FFF4E1"/>
+        </radialGradient>
+      </defs>
+      <circle cx="200" cy="200" r="193" fill="#FFE1B4"/>
+      <circle cx="200" cy="200" r="184" fill="url(#faceGrad2)" stroke="#F2D0A0" stroke-width="4"/>
+      <g id="i-ticks"></g>
+      <g id="i-minnum"></g>
+      <g id="i-hours"></g>
+      <g id="iHourG">
+        <line x1="200" y1="222" x2="200" y2="98" stroke="#FF5C7A" stroke-width="16" stroke-linecap="round"/>
+      </g>
+      <g id="iMinG">
+        <line x1="200" y1="228" x2="200" y2="50" stroke="#3B82F6" stroke-width="10" stroke-linecap="round"/>
+      </g>
+      <circle cx="200" cy="200" r="14" fill="#2E3A4B"/>
+      <circle cx="200" cy="200" r="6" fill="#FFFFFF"/>
+    </svg>
+
+    <div class="itime" id="iTime">&nbsp;</div>
+    <div class="icap" id="iCap"><div id="iCapText">正在准备…</div></div>
+    <div class="idots" id="iDots"></div>
+    <button class="btn primary" id="introNext">下一步 ▶</button>
+  </div>
+
+  <div class="startmask" id="startMask">
+    <div class="startcard">
+      <div class="bigclock">🕐</div>
+      <h2>认时钟小课堂</h2>
+      <p>先看一段动画，<br>学会怎么看指针～</p>
+      <button class="btn primary big" id="btnStart">▶ 点我开始</button>
+      <p class="soundtip">🔊 记得打开声音，跟着一起念</p>
+      <button class="skip2" id="btnStartSkip">跳过动画，直接玩</button>
+    </div>
+  </div>
+</div>
+
+<div class="shell">
+
+  <div class="topbar">
+    <div class="brand"><span class="ico">🕐</span>认时钟小课堂<small>1-2年级</small></div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="replay" id="btnReplay">↻ 看动画</button>
+      <div class="score">⭐ <b id="score">0</b></div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-mode="learn">🎓 认钟面</button>
+    <button class="tab" data-mode="read">👀 读时间</button>
+    <button class="tab" data-mode="set">✋ 拨时间</button>
+    <button class="tab" data-mode="life">🏫 几点做什么</button>
+    <button class="tab" data-mode="minute">⏱ 一分钟</button>
+  </div>
+
+  <div class="wrap">
+
+    <!-- ============ 时钟 ============ -->
+    <div class="card clock-card" id="clockCard">
+      <svg id="clock" viewBox="0 0 400 400" aria-label="可拖动的时钟教具">
+        <defs>
+          <radialGradient id="faceGrad" cx="50%" cy="32%" r="78%">
+            <stop offset="0%" stop-color="#FFFFFF"/>
+            <stop offset="100%" stop-color="#FFF4E1"/>
+          </radialGradient>
+        </defs>
+        <circle cx="200" cy="200" r="193" fill="#FFE1B4"/>
+        <circle cx="200" cy="200" r="184" fill="url(#faceGrad)" stroke="#F2D0A0" stroke-width="4"/>
+        <g id="ticks"></g>
+        <g id="minNums"></g>
+        <g id="hourNums"></g>
+        <line id="hourHand"   stroke="#FF5C7A" stroke-width="16" stroke-linecap="round"/>
+        <line id="minuteHand" stroke="#3B82F6" stroke-width="10" stroke-linecap="round"/>
+        <line id="secondHand" stroke="#F5A623" stroke-width="4"  stroke-linecap="round"/>
+        <circle id="hourGrip"   r="18" fill="#FF5C7A" fill-opacity=".2" stroke="#FF5C7A" stroke-opacity=".45" stroke-width="2"/>
+        <circle id="minuteGrip" r="18" fill="#3B82F6" fill-opacity=".2" stroke="#3B82F6" stroke-opacity=".45" stroke-width="2"/>
+        <circle cx="200" cy="200" r="14" fill="#2E3A4B"/>
+        <circle cx="200" cy="200" r="6"  fill="#FFFFFF"/>
+      </svg>
+
+      <div class="readout" id="readout">
+        <span class="digital" id="digital">08:30</span>
+        <span class="chinese" id="chinese">八点半</span>
+      </div>
+
+      <div class="demoBar" id="demoBar"></div>
+    </div>
+
+    <!-- ============ 面板 ============ -->
+    <div class="card panel">
+
+      <!-- ---- 认识钟面 ---- -->
+      <div class="pane active" id="pane-learn">
+        <p class="hint-title">怎么玩</p>
+        <div class="tipbox">
+          用手指（鼠标）<b>抓住指针上的<span class="k">圆点</span>拖动</b>，钟面就跟着走。<br>
+          <span class="k">粉色的短针是时针</span> —— 它指着几，就是<span class="h">几点</span>。<br>
+          <span class="b">蓝色的长针是分针</span> —— 它指着 <span class="b">12</span> 是整点，指着 <span class="b">6</span> 是半点。<br>
+          <span class="o">橙色的细针是秒针</span> —— 它跑得最快。
+        </div>
+
+        <div class="row">
+          <button class="btn primary" id="btnRandom">🎲 随机一个时间</button>
+          <button class="btn ghost" id="btnWhole">回到 12:00</button>
+          <button class="btn blue" id="btnDemo">🐌 看三针怎么走</button>
+        </div>
+
+        <div class="switch">
+          <span>显示分钟小数字</span>
+          <button class="toggle on" id="tgMinNums" aria-label="显示分钟小数字"></button>
+        </div>
+        <div class="switch">
+          <span>分针只走 5 分格（好拖）</span>
+          <button class="toggle on" id="tgSnap" aria-label="分针吸附五格"></button>
+        </div>
+        <div class="switch">
+          <span>显示秒针</span>
+          <button class="toggle" id="tgSec" aria-label="显示秒针"></button>
+        </div>
+
+        <div class="statbox" id="statBox"></div>
+
+        <div class="footnote">
+          <b>给家长：</b>先让孩子把指针拖到 3:00、6:00、9:00、12:00 四个位置，说出"三点、六点、九点、十二点"；再练半点。整点和半点都顺了，关掉 5 分格开关，练 5 分、10 分。点「🐌 看三针怎么走」可以看一遍 1 时 = 60 分、1 分 = 60 秒。
+        </div>
+      </div>
+
+      <!-- ---- 读时间 ---- -->
+      <div class="pane" id="pane-read">
+        <p class="hint-title">看看钟面，是几点？</p>
+        <div class="qbox">
+          <div class="qtxt">选出正确的答案</div>
+          <div class="qmain" id="readQ">— — : — —</div>
+        </div>
+        <div class="chips" style="margin-top:12px" id="diffRead">
+          <button class="chip" data-d="near">快几时/刚过几时</button>
+          <button class="chip on" data-d="hour">只练整点</button>
+          <button class="chip" data-d="half">练半点</button>
+          <button class="chip" data-d="five">练 5 分</button>
+          <button class="chip" data-d="any">都会一点</button>
+        </div>
+        <div class="opts" id="opts"></div>
+        <div class="feedback" id="fbRead"></div>
+        <div class="row">
+          <button class="btn blue" id="btnNextRead">下一题 →</button>
+        </div>
+        <div class="footnote">
+          <b>小窍门：</b>先看短针指到哪儿，是几点；再看长针指到哪儿，是几分。两个都看清再选。<br>
+          <b>快几时 / 刚过几时：</b>分针还差一点点到 12，就说"快 X 时了"；分针刚走过 12 一点点，就说"X 时刚过"。
+        </div>
+      </div>
+
+      <!-- ---- 拨时间 ---- -->
+      <div class="pane" id="pane-set">
+        <p class="hint-title">把指针拨到题目要求的时间</p>
+        <div class="qbox">
+          <div class="qtxt">请拨出</div>
+          <div class="qmain" id="setQ">— — : — —</div>
+        </div>
+        <div class="chips" style="margin-top:12px" id="diffSet">
+          <button class="chip on" data-d="hour">只练整点</button>
+          <button class="chip" data-d="half">练半点</button>
+          <button class="chip" data-d="five">练 5 分</button>
+        </div>
+        <div class="row">
+          <button class="btn primary" id="btnCheck">✔ 检查一下</button>
+          <button class="btn ghost" id="btnHint">💡 给点提示</button>
+          <button class="btn blue" id="btnNextSet">下一题 →</button>
+        </div>
+        <div class="feedback" id="fbSet"></div>
+        <div class="footnote">
+          <b>提醒：</b>拨的时候钟面不会告诉你数字时间，这是故意的 —— 就像对着墙上的真钟一样。拨完点"检查一下"。<br>
+          <b>小知识：</b>把分针拖过 12 的时候，短针会自己往前挪一格 —— 这就是真钟表的样子。
+        </div>
+      </div>
+
+      <!-- ---- 几点做什么 ---- -->
+      <div class="pane" id="pane-life">
+        <p class="hint-title">看看钟面，这个时间小明在做什么？</p>
+        <div class="qbox">
+          <div class="qtxt">小明的作息表是固定的，看看钟面选一选</div>
+          <div class="qmain" id="lifeQ">— — : — —</div>
+        </div>
+        <div class="chips" style="margin-top:12px" id="diffLife">
+          <button class="chip" data-d="hour">只练整点</button>
+          <button class="chip on" data-d="half">练半点</button>
+        </div>
+        <div class="lifegrid" id="lifeOpts"></div>
+        <div class="feedback" id="fbLife"></div>
+        <div class="row">
+          <button class="btn ghost" id="lifeSay" style="display:none">🔈 听一听 · 跟着说一遍</button>
+          <button class="btn blue" id="btnLifeNext">下一题 →</button>
+        </div>
+        <div class="footnote">
+          <b>作息表：</b>7:00 起床 · 7:30 上学 · 12:00 吃午饭 · 4:30 放学回家 · 6:30 吃晚饭 · 8:30 睡觉。<br>
+          <b>为什么练这个：</b>时间不只是一个数字，它和每天做的事连在一起。先让孩子读出钟面，再说出发生了什么事。
+        </div>
+      </div>
+
+      <!-- ---- 一分钟 ---- -->
+      <div class="pane" id="pane-minute">
+        <p class="hint-title">1 分钟到底有多长？</p>
+        <div class="tipbox">
+          选一件事，点「开始」，看看 <b>秒针转一圈</b> 的时间里你能做多少下。
+        </div>
+        <div class="chips" style="margin-top:12px" id="actChips">
+          <button class="chip on" data-a="👏 拍手">👏 拍手</button>
+          <button class="chip" data-a="🦶 跺脚">🦶 跺脚</button>
+          <button class="chip" data-a="✏️ 写数字">✏️ 写数字</button>
+          <button class="chip" data-a="🌬 深呼吸">🌬 深呼吸</button>
+        </div>
+
+        <div class="timer">
+          <div class="tnum" id="tnum">60</div>
+          <div class="tlab" id="tlab">秒 · 准备好了吗</div>
+        </div>
+
+        <div class="counter">
+          <button class="cbtn off" id="cbtn">+1</button>
+          <div>
+            <div class="cnt" id="cnt">0</div>
+            <div class="cntlab">次</div>
+          </div>
+        </div>
+
+        <div class="row">
+          <button class="btn primary" id="btnMinStart">▶ 开始</button>
+          <button class="btn ghost" id="btnMinReset">重置</button>
+        </div>
+        <div class="feedback" id="fbMinute"></div>
+        <div class="footnote">
+          <b>记住：</b>秒针走一圈 = 60 秒 = 1 分钟；分针走一圈 = 60 分钟 = 1 小时。<br>
+          <b>想一想：</b>你 1 分钟能做 N 次，那 1 小时能做多少次呢？（先猜一猜，再用 60 算一算。）
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   基础常量
+   ============================================================ */
+const CX = 200, CY = 200;
+const $ = id => document.getElementById(id);
+
+const svg        = $('clock');
+const hourHand   = $('hourHand');
+const minuteHand = $('minuteHand');
+const secondHand = $('secondHand');
+const readout    = $('readout');
+const digitalEl  = $('digital');
+const chineseEl  = $('chinese');
+
+const CN = ['零','一','二','三','四','五','六','七','八','九','十','十一','十二'];
+
+/* 运行期可变标记（提前声明，避免 TDZ） */
+let demoOn   = false;
+let demoTok  = 0;
+let minTok   = 0;
+let minRunning = false;
+let minCount = 0;
+let minAct   = '👏 拍手';
+
+/* ============================================================
+   学习记录（家长可看）
+   ============================================================ */
+const STATS_KEY = 'rzt_v2_stats';
+const ERR_LABEL = {
+  handSwap:    '两针认反（把长针当小时针）',
+  halfHour:    '整点和半点分不清',
+  hourPass:    '时针过格没看出来',
+  minuteCount: '分针刻度数错',
+  nearDir:     '快几时 / 刚过几时判断反'
+};
+let stats = { score:0, today:0, day:'', err:{} };
+
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+}
+function loadStats(){
+  try{
+    const raw = localStorage.getItem(STATS_KEY);
+    if(raw){
+      const o = JSON.parse(raw);
+      if(o && typeof o === 'object'){
+        stats.score = o.score || 0;
+        stats.today = o.today || 0;
+        stats.day   = o.day   || '';
+        stats.err   = o.err   || {};
+      }
+    }
+  }catch(e){}
+  Object.keys(ERR_LABEL).forEach(k => { if(typeof stats.err[k] !== 'number') stats.err[k] = 0; });
+  if(stats.day !== todayStr()){ stats.day = todayStr(); stats.today = 0; }
+}
+function saveStats(){
+  try{ localStorage.setItem(STATS_KEY, JSON.stringify(stats)); }catch(e){}
+}
+function addScore(){
+  stats.score++; stats.today++; saveStats();
+  $('score').textContent = stats.score;
+  const el = $('clockCard');
+  el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+  refreshStatBox();
+}
+function countErr(kind){
+  if(!kind || !(kind in ERR_LABEL)) return;
+  stats.err[kind] = (stats.err[kind] || 0) + 1;
+  saveStats(); refreshStatBox();
+}
+function refreshStatBox(){
+  const box = $('statBox'); if(!box) return;
+  const rows = Object.keys(ERR_LABEL)
+    .map(k => [ERR_LABEL[k], stats.err[k] || 0])
+    .filter(r => r[1] > 0)
+    .sort((a, b) => b[1] - a[1]);
+  const total = rows.reduce((s, r) => s + r[1], 0);
+  let advice;
+  if(total === 0) advice = '今天还没有错题，继续加油。';
+  else if(rows[0] && /时针过格/.test(rows[0][0])) advice = '最常错的是「时针过格」，去「读时间」里多练整点和半点。';
+  else if(rows[0] && /两针认反/.test(rows[0][0])) advice = '最常错的是「两针认反」，先回「认钟面」把长短针摸清楚。';
+  else if(rows[0] && /整点和半点/.test(rows[0][0])) advice = '最常错的是「整点 / 半点」，去「拨时间」练整点和半点。';
+  else if(rows[0] && /快几时/.test(rows[0][0])) advice = '最常错的是「快几时 / 刚过几时」，注意看分针离 12 有多远。';
+  else advice = '去「读时间」练 5 分的档位试试。';
+
+  box.innerHTML =
+    '<b>今日得分：</b>' + stats.today + ' 分　<b>累计：</b>' + stats.score + ' 分<br>' +
+    (total
+      ? rows.map(r => '· ' + r[0] + '：<span class="bad">' + r[1] + '</span> 次').join('<br>')
+      : '· 今天还没有错题') +
+    '<br><b>建议：</b>' + advice +
+    '<br><button class="clr" id="btnClearStats">清空记录</button>';
+  const cb = $('btnClearStats');
+  if(cb) cb.addEventListener('click', () => {
+    stats = { score:0, today:0, day:todayStr(), err:{} };
+    Object.keys(ERR_LABEL).forEach(k => stats.err[k] = 0);
+    saveStats(); $('score').textContent = '0'; refreshStatBox();
+  });
+}
+
+/* 状态 */
+const state = {
+  hour: 8,          // 0-11 （0 表示 12 点）
+  minute: 30,
+  second: 0,
+  mode: 'learn',
+  snapMin: 5,       // 认识模式下的吸附粒度
+  showMinNums: true,
+  showSecond: false,
+  diffRead: 'hour',
+  diffSet: 'hour',
+  diffLife: 'half',
+  q: null,          // {h, m} 或 life 事件对象
+  qKind: 'time',    // 'time' | 'near'
+  answered: false,
+  hintStep: 0
+};
+
+/* ============================================================
+   工具函数
+   ============================================================ */
+function h12(h){ return h === 0 ? 12 : h; }
+function pad(n){ return String(n).padStart(2,'0'); }
+function fmtTime(h, m){ return pad(h12(h)) + ':' + pad(m); }
+
+function cnNum(n){
+  if(n < 10) return CN[n];
+  if(n === 10) return '十';
+  if(n < 20) return '十' + CN[n % 10];
+  const t = Math.floor(n / 10), o = n % 10;
+  return CN[t] + '十' + (o ? CN[o] : '');
+}
+function cnRead(h, m){
+  const H = CN[h12(h)];
+  if(m === 0)  return H + '点整';
+  if(m === 30) return H + '点半';
+  return H + '点' + cnNum(m) + '分';
+}
+
+/* ============================================================
+   绘制钟面（主钟 / 动画钟 共用）
+   ============================================================ */
+function paintFace(ticks, minNums, hourNums){
+  const NS = 'http://www.w3.org/2000/svg';
+
+  for(let i = 0; i < 60; i++){
+    const isHour = i % 5 === 0;
+    const a = i * 6 * Math.PI / 180;
+    const r1 = isHour ? 160 : 170;
+    const r2 = 180;
+    const ln = document.createElementNS(NS, 'line');
+    ln.setAttribute('x1', CX + r1 * Math.sin(a));
+    ln.setAttribute('y1', CY - r1 * Math.cos(a));
+    ln.setAttribute('x2', CX + r2 * Math.sin(a));
+    ln.setAttribute('y2', CY - r2 * Math.cos(a));
+    ln.setAttribute('stroke', isHour ? '#5B6B7F' : '#C6D3E1');
+    ln.setAttribute('stroke-width', isHour ? 6 : 2.5);
+    ln.setAttribute('stroke-linecap', 'round');
+    ln.setAttribute('class', 'tick');
+    ticks.appendChild(ln);
+  }
+
+  for(let i = 1; i <= 12; i++){
+    const a = i * 30 * Math.PI / 180;
+    const r = 138;
+    const t = document.createElementNS(NS, 'text');
+    t.setAttribute('x', CX + r * Math.sin(a));
+    t.setAttribute('y', CY - r * Math.cos(a));
+    t.setAttribute('text-anchor', 'middle');
+    t.setAttribute('dominant-baseline', 'central');
+    t.setAttribute('font-size', '36');
+    t.setAttribute('font-weight', '800');
+    t.setAttribute('fill', '#33475F');
+    t.setAttribute('font-family', 'inherit');
+    t.setAttribute('class', 'hnum');
+    t.textContent = i;
+    hourNums.appendChild(t);
+  }
+
+  for(let i = 1; i <= 12; i++){
+    const a = i * 30 * Math.PI / 180;
+    const r = 106;
+    const t = document.createElementNS(NS, 'text');
+    t.setAttribute('x', CX + r * Math.sin(a));
+    t.setAttribute('y', CY - r * Math.cos(a));
+    t.setAttribute('text-anchor', 'middle');
+    t.setAttribute('dominant-baseline', 'central');
+    t.setAttribute('font-size', '17');
+    t.setAttribute('font-weight', '700');
+    t.setAttribute('fill', '#A9B9CB');
+    t.setAttribute('font-family', 'inherit');
+    t.setAttribute('class', 'mnum');
+    t.textContent = i * 5;
+    minNums.appendChild(t);
+  }
+}
+
+paintFace($('ticks'), $('minNums'), $('hourNums'));
+paintFace($('i-ticks'), $('i-minnum'), $('i-hours'));
+
+/* ============================================================
+   渲染指针
+   ============================================================ */
+function setHand(el, ang, len, back){
+  const s = Math.sin(ang), c = Math.cos(ang);
+  el.setAttribute('x1', CX - back * s);
+  el.setAttribute('y1', CY + back * c);
+  el.setAttribute('x2', CX + len * s);
+  el.setAttribute('y2', CY - len * c);
+}
+
+const hourGrip   = $('hourGrip');
+const minuteGrip = $('minuteGrip');
+
+/* 分钟小数字：读时间模式按难度自动控制，避免"送答案" */
+function updateMinNums(){
+  let show = state.showMinNums;
+  if(state.mode === 'read'){
+    show = (state.diffRead === 'five' || state.diffRead === 'any');
+  }else if(state.mode === 'life' || state.mode === 'minute'){
+    show = false;
+  }
+  $('minNums').style.display = show ? '' : 'none';
+}
+
+function updateReadout(){
+  readout.classList.toggle('hide', !(state.mode === 'learn' || state.mode === 'minute'));
+}
+
+function render(){
+  const hAng = ((state.hour % 12) * 30 + state.minute * 0.5) * Math.PI / 180;
+  const mAng = (state.minute * 6) * Math.PI / 180;
+  const sAng = (state.second * 6) * Math.PI / 180;
+  const HL = 102, ML = 150, SL = 168;
+  setHand(hourHand,   hAng, HL, 20);
+  setHand(minuteHand, mAng, ML, 26);
+  setHand(secondHand, sAng, SL, 34);
+
+  const showSec = state.showSecond || state.mode === 'minute' || demoOn;
+  secondHand.style.display = showSec ? '' : 'none';
+
+  const draggable = (state.mode === 'learn' || state.mode === 'set');
+  const showGrip = draggable ? '' : 'none';
+  hourGrip.style.display = showGrip;
+  minuteGrip.style.display = showGrip;
+  hourGrip.setAttribute('cx',   CX + HL * Math.sin(hAng));
+  hourGrip.setAttribute('cy',   CY - HL * Math.cos(hAng));
+  minuteGrip.setAttribute('cx', CX + ML * Math.sin(mAng));
+  minuteGrip.setAttribute('cy', CY - ML * Math.cos(mAng));
+
+  if(state.mode === 'minute'){
+    digitalEl.textContent = pad(h12(state.hour)) + ':' + pad(state.minute) + ':' + pad(Math.floor(state.second) % 60);
+    chineseEl.textContent = '1 分钟 = 60 秒';
+  }else{
+    digitalEl.textContent = fmtTime(state.hour, state.minute);
+    chineseEl.textContent = cnRead(state.hour, state.minute);
+  }
+
+  updateMinNums();
+}
+
+/* ============================================================
+   拖动交互（v2 新增：分针跨过 12 → 时针进位，模拟真实钟表）
+   ============================================================ */
+let dragging = null;
+const svgPt = e => {
+  const r = svg.getBoundingClientRect();
+  return { x: (e.clientX - r.left) / r.width * 400,
+           y: (e.clientY - r.top) / r.height * 400 };
+};
+const angleOf = p => {
+  const a = Math.atan2(p.x - CX, CY - p.y) * 180 / Math.PI;
+  return (a + 360) % 360;
+};
+function distSeg(px, py, x1, y1, x2, y2){
+  const dx = x2 - x1, dy = y2 - y1, l2 = dx*dx + dy*dy;
+  let t = l2 ? ((px - x1) * dx + (py - y1) * dy) / l2 : 0;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (x1 + t*dx), py - (y1 + t*dy));
+}
+function handEnds(el){
+  return [+el.getAttribute('x1'), +el.getAttribute('y1'),
+          +el.getAttribute('x2'), +el.getAttribute('y2')];
+}
+
+function applyDrag(p){
+  const a = angleOf(p);
+  if(dragging === 'h'){
+    // 反推小时时要扣掉分针带来的偏移，指针才会贴住手指
+    state.hour = ((Math.round((a - state.minute * 0.5) / 30) % 12) + 12) % 12;
+  }else{
+    const step = (state.mode === 'learn') ? state.snapMin : 5;
+    const prev = state.minute;
+    let m = Math.round(a / 6 / step) * step % 60;
+    if(m < 0) m += 60;
+    // 分针跨过 12 → 时针走一格（顺时针加、逆时针减）
+    if(prev > 45 && m < 15)      state.hour = (state.hour + 1) % 12;
+    else if(prev < 15 && m > 45) state.hour = (state.hour + 11) % 12;
+    state.minute = m;
+  }
+  render();
+}
+
+svg.addEventListener('pointerdown', e => {
+  if(state.mode !== 'learn' && state.mode !== 'set') return;   // 读时间 / 情境模式不能拨针
+  if(demoOn) return;
+
+  const p = svgPt(e);
+  const [hx1,hy1,hx2,hy2] = handEnds(hourHand);
+  const [mx1,my1,mx2,my2] = handEnds(minuteHand);
+  const dH = distSeg(p.x, p.y, hx1, hy1, hx2, hy2);
+  const dM = distSeg(p.x, p.y, mx1, my1, mx2, my2);
+  const r  = Math.hypot(p.x - CX, p.y - CY);
+
+  if(Math.min(dH, dM) > 62 && r > 54) return;
+
+  if(r > 128)      dragging = 'm';
+  else if(r < 88)  dragging = 'h';
+  else             dragging = (dM <= dH) ? 'm' : 'h';
+
+  svg.classList.add('grabbing');
+  svg.setPointerCapture(e.pointerId);
+  applyDrag(p);
+  e.preventDefault();
+});
+
+svg.addEventListener('pointermove', e => {
+  if(!dragging) return;
+  applyDrag(svgPt(e));
+  e.preventDefault();
+});
+
+function endDrag(){ dragging = null; svg.classList.remove('grabbing'); }
+svg.addEventListener('pointerup', endDrag);
+svg.addEventListener('pointercancel', endDrag);
+
+/* ============================================================
+   音效
+   ============================================================ */
+let ac = null;
+function actx(){
+  if(!ac){ const C = window.AudioContext || window.webkitAudioContext; if(C) ac = new C(); }
+  return ac;
+}
+function tone(f, at, dur, vol, type){
+  const c = actx(); if(!c) return;
+  if(c.state === 'suspended') c.resume();
+  const o = c.createOscillator(), g = c.createGain();
+  o.type = type || 'sine';
+  o.frequency.value = f;
+  o.connect(g); g.connect(c.destination);
+  const t0 = c.currentTime + at;
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.linearRampToValueAtTime(vol, t0 + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.start(t0); o.stop(t0 + dur + 0.06);
+}
+const sndOk  = () => { tone(784, 0, .16, .16); tone(1046, .11, .28, .14); };
+const sndNo  = () => { tone(392, 0, .18, .06, 'triangle'); tone(294, .15, .26, .05, 'triangle'); };
+
+const flash = cls => {
+  const el = $('clockCard');
+  el.classList.remove('pop','shake','ring');
+  void el.offsetWidth;
+  el.classList.add(cls);
+};
+
+/* ============================================================
+   模式切换
+   ============================================================ */
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.mode = btn.dataset.mode;
+
+    stopDemo(); stopMinute();
+    $('demoBar').style.display = 'none';
+
+    document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+    $('pane-' + state.mode).classList.add('active');
+    updateReadout();
+
+    if(state.mode === 'read')   startRead();
+    if(state.mode === 'set')    startSet();
+    if(state.mode === 'life')   startLife();
+    if(state.mode === 'minute') resetMinute();
+    if(state.mode === 'learn')  render();
+  });
+});
+
+/* ============================================================
+   认识模式
+   ============================================================ */
+$('btnRandom').addEventListener('click', () => {
+  const mins = [0, 30, 5, 10, 15, 20, 25, 35, 40, 45, 50, 55];
+  state.hour = Math.floor(Math.random() * 12);
+  state.minute = mins[Math.floor(Math.random() * mins.length)];
+  render();
+  flash('pop');
+  tone(660, 0, .12, .1);
+});
+
+$('btnWhole').addEventListener('click', () => {
+  state.hour = 0; state.minute = 0; state.second = 0;
+  render(); flash('pop');
+});
+
+$('tgMinNums').addEventListener('click', function(){
+  this.classList.toggle('on');
+  state.showMinNums = this.classList.contains('on');
+  updateMinNums();
+});
+
+$('tgSnap').addEventListener('click', function(){
+  this.classList.toggle('on');
+  state.snapMin = this.classList.contains('on') ? 5 : 1;
+});
+
+$('tgSec').addEventListener('click', function(){
+  this.classList.toggle('on');
+  state.showSecond = this.classList.contains('on');
+  render();
+});
+
+/* ---------- 三针联动演示 ---------- */
+let demoBefore = null;
+function stopDemo(){
+  demoTok++;
+  if(demoOn && demoBefore){
+    state.hour   = demoBefore.h;
+    state.minute = demoBefore.m;
+    state.second = demoBefore.s;
+    render();
+  }
+  demoOn = false;
+  demoBefore = null;
+  const bar = $('demoBar');
+  if(bar) bar.style.display = 'none';
+}
+
+function demoLink(){
+  if(demoOn) return;
+  const tk = ++demoTok;
+  demoBefore = { h: state.hour, m: state.minute, s: state.second };
+  demoOn = true;
+
+  state.hour = 0; state.minute = 0; state.second = 0;
+  render();
+
+  const bar = $('demoBar');
+  bar.style.display = 'flex';
+  const say = t => {
+    if(tk !== demoTok) return;
+    bar.innerHTML = t;
+    speakText(stripTags(t));
+  };
+  const restore = () => {
+    state.hour   = demoBefore ? demoBefore.h : 12;
+    state.minute = demoBefore ? demoBefore.m : 0;
+    state.second = demoBefore ? demoBefore.s : 0;
+    demoOn = false;
+    demoBefore = null;
+    bar.style.display = 'none';
+    render();
+  };
+
+  say('先看<span class="o">秒针</span>：它跑得最快。');
+  const D1 = 3200, GAP = 1600, D2 = 9000;
+  const t0 = performance.now();
+
+  (function f(t){
+    if(tk !== demoTok) return;
+    const el = t - t0;
+
+    if(el <= D1){
+      const p = el / D1;
+      state.second = p * 60;          // 秒针一圈
+      state.minute = p * 1;           // 分针走 1 小格 = 1 分钟
+      render();
+      requestAnimationFrame(f);
+    }else if(el <= D1 + GAP){
+      state.second = 0; state.minute = 1; render();
+      if(el - D1 < 40) say('<span class="o">秒针</span>走一圈 = 60 秒 = <span class="h">1 分钟</span>，<span class="b">分针</span>只走了 <span class="b">1 小格</span>。');
+      requestAnimationFrame(f);
+    }else if(el <= D1 + GAP + D2){
+      const p = (el - D1 - GAP) / D2;
+      state.minute = (p * 60) % 60;         // 分针走完一圈
+      state.second = (p * 12 * 60) % 60;    // 秒针飞快转
+      state.hour   = p * 1;                 // 时针走 1 大格
+      render();
+      if(el - D1 - GAP < 40) say('<span class="b">分针</span>走一圈 = 60 分钟 = <span class="h">1 小时</span>，<span class="p">时针</span>正好走 <span class="p">1 大格</span>。');
+      requestAnimationFrame(f);
+    }else{
+      state.hour = 1; state.minute = 0; state.second = 0; render();
+      say('记住：<span class="h">1 时 = 60 分</span>，<span class="h">1 分 = 60 秒</span>。');
+      setTimeout(() => { if(tk === demoTok) restore(); }, 3000);
+    }
+  })(performance.now());
+}
+$('btnDemo').addEventListener('click', demoLink);
+
+/* ============================================================
+   语音合成
+   ============================================================ */
+const synth = window.speechSynthesis || null;
+let zhVoice = null;
+let voiceOn = true;
+
+function stripTags(s){ return String(s).replace(/<[^>]*>/g, ''); }
+
+function pickVoice(){
+  if(!synth) return;
+  const list = synth.getVoices ? (synth.getVoices() || []) : [];
+  const zh = list.filter(v => /^zh/i.test(v.lang) || /Chinese|中文|普通话|國語|国语/i.test(v.name || ''));
+  const want = ['xiaoxiao','xiaoyi','晓晓','小晓','huihui','慧慧','yaoyao','瑶瑶',
+                'tingting','婷婷','meijia','美佳','sinji','yating','雅婷','zhihui'];
+  const nice = zh.find(v => {
+    const n = (v.name || '').toLowerCase();
+    return want.some(w => n.includes(w));
+  });
+  zhVoice = nice || zh[0] || null;
+}
+if(synth){
+  pickVoice();
+  if(typeof synth.addEventListener === 'function') synth.addEventListener('voiceschanged', pickVoice);
+  else synth.onvoiceschanged = pickVoice;
+}
+
+function stopSpeak(){ if(synth){ try{ synth.cancel(); }catch(e){} } }
+
+/* 单句朗读：主界面用（动画演示、情境跟读） */
+function speakText(text){
+  if(!synth || !voiceOn || !text) return;
+  try{
+    stopSpeak();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang  = 'zh-CN';
+    u.rate  = 0.95;
+    u.pitch = 1.12;
+    if(zhVoice) u.voice = zhVoice;
+    synth.speak(u);
+  }catch(e){}
+}
+
+/* 说一句；说完（或兜底超时）再执行 done。静音/不支持时按字数估算停留时长 */
+function speak(text, done, tk){
+  let fired = false;
+  const next = () => { if(fired) return; fired = true; if(tk === iTok) done(); };
+
+  if(!synth || !voiceOn){
+    setTimeout(next, Math.min(3800, Math.max(1500, text.length * 135 + 900)));
+    return;
+  }
+  stopSpeak();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang   = 'zh-CN';
+  u.rate   = 0.92;
+  u.pitch  = 1.12;
+  if(zhVoice) u.voice = zhVoice;
+  u.onend   = next;
+  u.onerror = next;
+  try{ synth.speak(u); }catch(e){ next(); }
+  setTimeout(next, text.length * 380 + 3000);
+}
+
+/* ============================================================
+   出题：难度
+   ============================================================ */
+const DIFF = {
+  near: { mins: [5, 55] },
+  hour: { mins: [0] },
+  half: { mins: [0, 30] },
+  five: { mins: [0,5,10,15,20,25,30,35,40,45,50,55] },
+  any:  { mins: null }
+};
+function randMin(diff){
+  const d = DIFF[diff];
+  if(d.mins) return d.mins[Math.floor(Math.random() * d.mins.length)];
+  return Math.floor(Math.random() * 60);
+}
+function randHour(){ return Math.floor(Math.random() * 12); }
+
+function bindDiff(boxId, key, run){
+  $(boxId).addEventListener('click', e => {
+    const c = e.target.closest('.chip'); if(!c) return;
+    [...$(boxId).children].forEach(x => x.classList.remove('on'));
+    c.classList.add('on');
+    state[key] = c.dataset.d;
+    run();
+  });
+}
+
+/* ---------- 选项生成（v2：按错因定向生成干扰项） ---------- */
+function pickDistractors(cands, n){
+  const out = [];
+  const kinds = [];
+  cands.forEach(c => { if(kinds.indexOf(c.kind) < 0) kinds.push(c.kind); });
+  kinds.forEach(k => {
+    if(out.length >= n) return;
+    const hit = cands.filter(c => c.kind === k && out.indexOf(c) < 0)[0];
+    if(hit) out.push(hit);
+  });
+  cands.forEach(c => { if(out.length < n && out.indexOf(c) < 0) out.push(c); });
+  return out.slice(0, n);
+}
+
+function makeTimeOptions(h, m, diff){
+  const seen = [fmtTime(h, m)];
+  const cands = [];
+  const add = (hh, mm, kind) => {
+    const v = fmtTime(((hh % 12) + 12) % 12, ((mm % 60) + 60) % 60);
+    if(seen.indexOf(v) >= 0) return;
+    seen.push(v);
+    cands.push({ text: v, kind: kind, right: false });
+  };
+
+  if(diff === 'hour' || diff === 'half'){
+    add(h + (m >= 30 ? 1 : -1), m, 'hourPass');   // 主干扰：时针过格
+    add(h, m === 0 ? 30 : 0, 'halfHour');         // 整点／半点互换
+    add(h + 1, m, 'hourPass');
+    add(h - 1, m, 'hourPass');
+  }else{
+    add(h, m + 5,  'minuteCount');                // 主干扰：刻度数错
+    add(h, m - 5,  'minuteCount');
+    add(h + (m >= 30 ? 1 : -1), m, 'hourPass');   // 时针过格
+    add(Math.floor(m / 5), (h % 12) * 5, 'handSwap');
+    add(h, m + 15, 'minuteCount');
+  }
+
+  const right = { text: fmtTime(h, m), kind: 'right', right: true };
+  const all = [right].concat(pickDistractors(cands, 3));
+  return { rightText: right.text, all: all.sort(() => Math.random() - 0.5) };
+}
+
+function makeNearOptions(h, m){
+  const fast = hh => '快 ' + h12(hh) + ' 时了';
+  const past = hh => h12(hh) + ' 时刚过';
+  let rightText, pool;
+  if(m === 55){
+    rightText = fast(h + 1);
+    pool = [past(h + 1), fast(h), past(h)];
+  }else{
+    rightText = past(h);
+    pool = [fast(h), past(h + 1), fast(h + 1)];
+  }
+  const uniq = [];
+  pool.forEach(t => { if(t !== rightText && uniq.indexOf(t) < 0) uniq.push(t); });
+  const right = { text: rightText, kind: 'right', right: true };
+  const all = [right].concat(uniq.slice(0, 3).map(t => ({ text: t, kind: 'nearDir', right: false })));
+  return { rightText: rightText, all: all.sort(() => Math.random() - 0.5) };
+}
+
+/* ============================================================
+   读时间
+   ============================================================ */
+bindDiff('diffRead', 'diffRead', () => startRead());
+bindDiff('diffSet',  'diffSet',  () => startSet());
+bindDiff('diffLife', 'diffLife', () => startLife());
+
+function startRead(){
+  state.answered = false;
+  const diff = state.diffRead;
+  const h = randHour();
+  const m = randMin(diff);
+  state.hour = h; state.minute = m; state.second = 0;
+  state.q = { h: h, m: m };
+  state.qKind = (diff === 'near') ? 'near' : 'time';
+  render();
+
+  const built = (state.qKind === 'near') ? makeNearOptions(h, m) : makeTimeOptions(h, m, diff);
+
+  $('readQ').textContent = (state.qKind === 'near') ? '— 快几时了？—' : '— — : — —';
+  $('fbRead').textContent = '';
+  $('fbRead').className = 'feedback';
+
+  const box = $('opts');
+  box.innerHTML = '';
+  built.all.forEach(o => {
+    const b = document.createElement('button');
+    b.className = 'opt' + (state.qKind === 'near' ? ' small' : '');
+    b.textContent = o.text;
+    b.addEventListener('click', () => answerRead(b, o, built.rightText));
+    box.appendChild(b);
+  });
+}
+
+function answerRead(btn, opt, rightText){
+  if(state.answered) return;
+  state.answered = true;
+  const box = $('opts');
+  [...box.children].forEach(b => { b.disabled = true; });
+
+  if(opt.right){
+    btn.classList.add('right');
+    $('fbRead').innerHTML = '✅ 答对啦！' + okSentence(state.q.h, state.q.m, state.qKind);
+    $('fbRead').className = 'feedback ok';
+    $('readQ').textContent = (state.qKind === 'near')
+      ? rightText
+      : fmtTime(state.q.h, state.q.m) + '（' + cnRead(state.q.h, state.q.m) + '）';
+    addScore(); sndOk(); flash('ring');
+  }else{
+    btn.classList.add('wrong');
+    [...box.children].forEach(b => { if(b.textContent === rightText) b.classList.add('right'); });
+    countErr(opt.kind);
+    $('fbRead').innerHTML = '<span class="em">❌</span> ' + wrongHint(opt.kind, state.q.h, state.q.m, state.qKind, rightText);
+    $('fbRead').className = 'feedback no';
+    sndNo(); flash('shake');
+  }
+}
+
+function okSentence(h, m, kind){
+  if(kind === 'near'){
+    return (m === 55)
+      ? '分针还差一点到 12，时针快到 ' + h12(h + 1) + ' 了，所以是「快 ' + h12(h + 1) + ' 时了」。'
+      : '分针刚走过 12，时针刚过 ' + h12(h) + '，所以是「' + h12(h) + ' 时刚过」。';
+  }
+  if(m === 0)  return '分针指着 12，时针指着 ' + h12(h) + '，就是 ' + h12(h) + ' 点整。';
+  if(m === 30) return '分针指着 6，时针在 ' + h12(h) + ' 和 ' + h12(h + 1) + ' 中间，就是 ' + h12(h) + ' 点半。';
+  return '时针过 ' + h12(h) + ' 还不到 ' + h12(h + 1) + '，分针指着 ' + m + ' 分，就是 ' + cnRead(h, m) + '。';
+}
+
+function wrongHint(kind, h, m, qKind, rightText){
+  if(qKind === 'near'){
+    return '差一点点！窍门是：分针<b>还差一点到 12</b>，就说「快 X 时了」（X 是时针马上要走到的那格）；分针<b>刚走过 12</b>，就说「X 时刚过」。这题答案是 <b>' + rightText + '</b>。';
+  }
+  if(kind === 'handSwap')    return '两针认反啦！<b>粉色的短针</b>看几点，<b>蓝色的长针</b>看几分。正确答案是 <b>' + rightText + '</b>。';
+  if(kind === 'halfHour')    return '分针指着 12 才是整点，指着 6 是半点。再看看长针指哪儿？正确答案是 <b>' + rightText + '</b>。';
+  if(kind === 'minuteCount') return '分针的分钟数看错了。长针每走一大格是 <b>5 分钟</b>，从 12 起数一数它走了几大格。正确答案是 <b>' + rightText + '</b>。';
+  return '差一点点！时针<b>还没走过</b>这个数字，就不能算下一时。看，时针在 ' + h12(h) + ' 和 ' + h12(h + 1) + ' 中间，说明还在 <b>' + h12(h) + ' 时</b>。正确答案是 <b>' + rightText + '</b>。';
+}
+
+$('btnNextRead').addEventListener('click', startRead);
+
+/* ============================================================
+   拨时间（v2：起始时间随机 + 阶梯提示）
+   ============================================================ */
+function startSet(){
+  state.answered = false;
+  state.hintStep = 0;
+  const h = randHour(), m = randMin(state.diffSet);
+  state.q = { h: h, m: m };
+  // 起始随机：避开与答案重合，也避开 12:00（两针完全重合不好抓）
+  let sh, sm;
+  do{
+    sh = randHour();
+    sm = DIFF[state.diffSet].mins ? DIFF[state.diffSet].mins[Math.floor(Math.random() * DIFF[state.diffSet].mins.length)] : 0;
+  }while(sh === h && sm === m);
+  state.hour = sh; state.minute = (sm === 0 ? 30 : 0); state.second = 0;
+  render();
+
+  $('setQ').textContent = fmtTime(h, m) + '　（' + cnRead(h, m) + '）';
+  $('fbSet').textContent = '';
+  $('fbSet').className = 'feedback';
+  $('btnHint').textContent = '💡 给点提示';
+}
+
+$('btnCheck').addEventListener('click', () => {
+  if(state.answered) return;
+  const q = state.q;
+  if(state.hour === q.h && state.minute === q.m){
+    state.answered = true;
+    $('fbSet').innerHTML = '✅ 太棒了，完全正确！' + okSentence(q.h, q.m, 'time');
+    $('fbSet').className = 'feedback ok';
+    addScore(); sndOk(); flash('ring');
+  }else{
+    $('fbSet').innerHTML = '<span class="em">❌</span> 还差一点点，再调一调。提示：短针指 ' + h12(q.h) + '，长针指 ' + q.m + ' 分。';
+    $('fbSet').className = 'feedback no';
+    sndNo(); flash('shake');
+  }
+});
+
+$('btnHint').addEventListener('click', () => {
+  if(state.answered) return;
+  const q = state.q;
+  if(state.hintStep === 0){
+    state.hintStep = 1;
+    $('btnHint').textContent = '👀 看完整答案';
+    $('fbSet').innerHTML = '💡 先只告诉你一半：<b>分针</b>要指到第 ' + (q.m / 5) + ' 大格（也就是 ' + q.m + ' 分）。先调分针吧，<b>时针先别急着动</b>。';
+    $('fbSet').className = 'feedback';
+    tone(520, 0, .2, .1);
+  }else{
+    state.answered = true;
+    state.hour = q.h; state.minute = q.m;
+    render();
+    $('fbSet').innerHTML = '👀 答案就是 <b>' + fmtTime(q.h, q.m) + '</b>（' + cnRead(q.h, q.m) + '）。' + okSentence(q.h, q.m, 'time');
+    $('fbSet').className = 'feedback';
+    $('btnHint').textContent = '💡 给点提示';
+    tone(520, 0, .2, .1);
+  }
+});
+
+$('btnNextSet').addEventListener('click', startSet);
+
+/* ============================================================
+   几点做什么（生活情境）
+   ============================================================ */
+const LIFE = [
+  { e:'🌅', t:'起床',     h:7,  m:0,  s:'小明早上七点起床。' },
+  { e:'🎒', t:'上学',     h:7,  m:30, s:'小明七点半出门上学。' },
+  { e:'🍚', t:'吃午饭',   h:0,  m:0,  s:'小明中午十二点吃午饭。' },
+  { e:'🏫', t:'放学回家', h:4,  m:30, s:'小明下午四点半放学回家。' },
+  { e:'🍜', t:'吃晚饭',   h:6,  m:30, s:'小明晚上六点半吃晚饭。' },
+  { e:'😴', t:'睡觉',     h:8,  m:30, s:'小明八点半上床睡觉。' }
+];
+
+function lifeSentence(q){
+  if(q.m === 0) return q.s + '分针指着十二，时针指着' + h12(q.h) + '。';
+  return q.s + '分针指着六，时针在' + h12(q.h) + '和' + h12(q.h + 1) + '中间。';
+}
+
+function startLife(){
+  state.answered = false;
+  const pool = LIFE.filter(x => state.diffLife === 'hour' ? x.m === 0 : x.m === 30);
+  const q = pool[Math.floor(Math.random() * pool.length)];
+  state.q = q;
+  state.hour = q.h; state.minute = q.m; state.second = 0;
+  render();
+
+  $('lifeQ').textContent = '这个时间，小明在做什么？';
+  $('fbLife').textContent = '';
+  $('fbLife').className = 'feedback';
+  $('lifeSay').style.display = 'none';
+
+  const others = LIFE.filter(x => x.t !== q.t).sort(() => Math.random() - 0.5).slice(0, 3);
+  const all = [q].concat(others).sort(() => Math.random() - 0.5);
+
+  const box = $('lifeOpts');
+  box.innerHTML = '';
+  all.forEach(o => {
+    const b = document.createElement('button');
+    b.className = 'lifecard';
+    b.innerHTML = '<span class="e">' + o.e + '</span><span>' + o.t + '</span>';
+    b.addEventListener('click', () => answerLife(b, o, q));
+    box.appendChild(b);
+  });
+}
+
+function answerLife(btn, chosen, q){
+  if(state.answered) return;
+  state.answered = true;
+  const box = $('lifeOpts');
+  [...box.children].forEach(b => { b.disabled = true; });
+
+  if(chosen.t === q.t){
+    btn.classList.add('right');
+    $('fbLife').innerHTML = '✅ 对啦！' + lifeSentence(q) + '<br>点下面「听一听」，跟着说一遍。';
+    $('fbLife').className = 'feedback ok';
+    $('lifeSay').style.display = '';
+    addScore(); sndOk(); flash('ring');
+  }else{
+    btn.classList.add('wrong');
+    [...box.children].forEach((b, i) => { if(b.textContent.indexOf(q.t) >= 0) b.classList.add('right'); });
+    $('fbLife').innerHTML = '<span class="em">❌</span> 再看看钟面：' + okSentence(q.h, q.m, 'time') + '<br>那是小明的「<b>' + q.t + '</b>」时间。';
+    $('fbLife').className = 'feedback no';
+    sndNo(); flash('shake');
+  }
+}
+
+$('lifeSay').addEventListener('click', () => {
+  if(!state.q) return;
+  speakText(lifeSentence(state.q));
+});
+
+$('btnLifeNext').addEventListener('click', startLife);
+
+/* ============================================================
+   一分钟（时间量感）
+   ============================================================ */
+function stopMinute(){ minTok++; minRunning = false; }
+
+function resetMinute(){
+  stopMinute();
+  state.hour = 0; state.minute = 0; state.second = 0;
+  render();
+  $('tnum').textContent = '60';
+  $('tlab').textContent = '秒 · 准备好了吗';
+  $('cnt').textContent = '0';
+  $('fbMinute').textContent = '';
+  $('fbMinute').className = 'feedback';
+  $('btnMinStart').textContent = '▶ 开始';
+  $('btnMinStart').disabled = false;
+  $('cbtn').classList.add('off');
+  minCount = 0;
+}
+
+function startMinute(){
+  stopMinute();
+  const tk = ++minTok;
+  minRunning = true;
+  minCount = 0;
+  $('cnt').textContent = '0';
+  $('fbMinute').textContent = '';
+  $('fbMinute').className = 'feedback';
+  $('btnMinStart').textContent = '计时中…';
+  $('btnMinStart').disabled = true;
+  $('cbtn').classList.remove('off');
+  $('tlab').textContent = '秒';
+
+  const t0 = performance.now();
+  speakText('准备，开始！');
+
+  (function loop(t){
+    if(tk !== minTok) return;
+    const el = (t - t0) / 1000;
+    const left = 60 - el;
+
+    if(left <= 0){
+      state.second = 0; render();
+      $('tnum').textContent = '0';
+      $('tlab').textContent = '时间到！';
+      $('btnMinStart').textContent = '🔄 再来一次';
+      $('btnMinStart').disabled = false;
+      $('cbtn').classList.add('off');
+      $('fbMinute').innerHTML = '⏰ <b>1 分钟到了！</b>' + minAct + '你做了 <b>' + minCount + '</b> 次。秒针正好走了一圈 —— 1 分钟 = 60 秒。<br>想一想：1 小时 = 60 分钟，那你 1 小时能做多少次呢？';
+      $('fbMinute').className = 'feedback ok';
+      sndOk();
+      minRunning = false;
+      return;
+    }
+
+    state.second = el % 60;
+    render();
+    $('tnum').textContent = Math.ceil(left);
+    requestAnimationFrame(loop);
+  })(performance.now());
+}
+
+$('btnMinStart').addEventListener('click', startMinute);
+$('btnMinReset').addEventListener('click', resetMinute);
+
+$('cbtn').addEventListener('click', () => {
+  if(!minRunning) return;
+  minCount++;
+  $('cnt').textContent = minCount;
+  tone(880, 0, .05, .06);
+});
+
+$('actChips').addEventListener('click', e => {
+  const c = e.target.closest('.chip'); if(!c) return;
+  if(minRunning) return;
+  [...$('actChips').children].forEach(x => x.classList.remove('on'));
+  c.classList.add('on');
+  minAct = c.dataset.a;
+});
+
+/* ============================================================
+   开场教学动画
+   ============================================================ */
+const iHourG = $('iHourG'), iMinG = $('iMinG');
+let iTok = 0, iTimer = null, iIdx = 0;
+
+function iHands(h, m){
+  iHourG.setAttribute('transform', 'rotate(' + h + ' 200 200)');
+  iMinG.setAttribute('transform', 'rotate(' + m + ' 200 200)');
+}
+function iTime(d, c){
+  $('iTime').innerHTML = d ? (d + (c ? '<small>' + c + '</small>' : '')) : '&nbsp;';
+}
+const easeIO = p => p < .5 ? 2*p*p : 1 - Math.pow(-2*p + 2, 2) / 2;
+
+function iTween(tk, h0, h1, m0, m1, dur, done){
+  const t0 = performance.now();
+  (function f(t){
+    if(tk !== iTok) return;
+    const p = Math.min(1, (t - t0) / dur);
+    const e = easeIO(p);
+    iHands(h0 + (h1 - h0) * e, m0 + (m1 - m0) * e);
+    if(p < 1) requestAnimationFrame(f);
+    else if(done) done();
+  })(performance.now());
+}
+
+function iFade(sel, base, gap){
+  const arr = [...document.querySelectorAll(sel)];
+  arr.forEach(e => { e.style.transition = 'none'; e.style.opacity = 0; });
+  requestAnimationFrame(() => {
+    arr.forEach((e, i) => {
+      e.style.transition = 'opacity .35s ease';
+      setTimeout(() => { e.style.opacity = 1; }, base + i * gap);
+    });
+  });
+}
+function ensureFace(){
+  document.querySelectorAll('#introClock .tick, #introClock .hnum, #introClock .mnum')
+    .forEach(e => { e.style.transition = 'opacity .3s ease'; e.style.opacity = 1; });
+}
+
+const SCENES = [
+  { // ① 认识钟面
+    cap: '看，这是一个钟面。上面有 <b>12 个数字</b>，围成一圈。',
+    steps: [
+      { say: '看，这是一个钟面。',
+        do: tk => { iTime('', ''); iHands(0, 0); iFade('#introClock .tick', 0, 6); } },
+      { say: '上面有十二个数字，围成一圈。',
+        do: tk => iFade('#introClock .hnum', 0, 90) },
+      { say: '旁边还有一圈小数字，帮我们数分钟。',
+        do: tk => iFade('#introClock .mnum', 0, 45) }
+    ]
+  },
+  { // ② 时针
+    cap: '短一点、粗一点的，是 <span class="p">时针</span>。它走得慢 —— 时针指着几，就是 <span class="h">几点</span>。',
+    steps: [
+      { say: '短一点儿、粗一点儿的，是时针。' },
+      { say: '它走得慢，我们看仔细。',
+        do: tk => iTween(tk, 0, 90, 0, 0, 2400) },
+      { say: '现在时针指着三，就是三点。',
+        do: tk => iTime('03:00', '三点整') }
+    ]
+  },
+  { // ③ 分针
+    cap: '长一点的，是 <span class="b">分针</span>。它走得快 —— 分针指着 <span class="b">12</span>，就是 <span class="h">整点</span>。',
+    steps: [
+      { say: '长一点儿的，是分针。' },
+      { say: '它走得快，绕着钟面跑一圈。',
+        do: tk => iTween(tk, 90, 90, 0, 360, 2400) },
+      { say: '分针指着十二，就是整点。',
+        do: tk => iTime('03:00', '三点整') }
+    ]
+  },
+  { // ④ 整点示范
+    cap: '分针指着 <span class="b">12</span>，时针指着 <span class="h">9</span> —— 就是 <span class="h">9 点整</span>。',
+    steps: [
+      { say: '现在，我们把它拨到九点。',
+        do: tk => iTime('', '') },
+      { say: '看，分针指着十二，时针指着九。',
+        do: tk => iTween(tk, 90, 270, 360, 360, 1700) },
+      { say: '这就是九点整。',
+        do: tk => iTime('09:00', '九点整') }
+    ]
+  },
+  { // ⑤ 半点示范
+    cap: '分针指着 <span class="b">6</span>，就是 <span class="h">半点</span>。<br>时针在 <span class="p">3</span> 和 4 中间，就是 <span class="h">3 点半</span>。',
+    steps: [
+      { say: '再看半点。先回到三点。',
+        do: tk => { iTime('', ''); iTween(tk, 270, 450, 360, 360, 1600); } },
+      { say: '分针走到六，就是半点。',
+        do: tk => iTween(tk, 450, 465, 360, 540, 1900) },
+      { say: '看清楚，时针停在三和四中间，这是三点半。',
+        do: tk => iTime('03:30', '三点半') }
+    ]
+  },
+  { // ⑥ 总结
+    cap: '记住啦：<span class="p">短针</span>看几点，<span class="b">长针</span>看几分。<br>现在，我们来试试吧！',
+    steps: [
+      { say: '记住啦，短针看几点，长针看几分。' },
+      { say: '现在，我们来试试吧！',
+        do: tk => iTime('03:30', '三点半') }
+    ]
+  }
+];
+
+function runSteps(tk, steps, i, onDone){
+  if(tk !== iTok) return;
+  if(i >= steps.length){ if(onDone) onDone(); return; }
+  const st = steps[i];
+  if(st.do){ try{ st.do(tk); }catch(e){} }
+  speak(st.say, () => {
+    setTimeout(() => { if(tk === iTok) runSteps(tk, steps, i + 1, onDone); }, st.gap != null ? st.gap : 300);
+  }, tk);
+}
+
+function iShow(idx){
+  iTok++;
+  clearTimeout(iTimer);
+  stopSpeak();
+  iIdx = idx;
+  const s = SCENES[idx];
+  const tk = iTok;
+
+  const cap = $('iCap');
+  cap.style.transition = 'none';
+  cap.style.opacity = 0;
+  $('iCapText').innerHTML = s.cap;
+  requestAnimationFrame(() => {
+    cap.style.transition = 'opacity .4s ease';
+    cap.style.opacity = 1;
+  });
+
+  const dots = $('iDots');
+  if(dots.children.length !== SCENES.length){
+    dots.innerHTML = '';
+    SCENES.forEach(() => dots.appendChild(document.createElement('i')));
+  }
+  [...dots.children].forEach((d, i) => d.classList.toggle('on', i <= idx));
+
+  const nb = $('introNext');
+  nb.textContent = (idx === SCENES.length - 1) ? '开始玩吧 🎉' : '下一步 ▶';
+  nb.classList.remove('pop2'); void nb.offsetWidth; nb.classList.add('pop2');
+
+  if(idx > 0) ensureFace();
+
+  runSteps(tk, s.steps, 0, () => {
+    if(tk !== iTok) return;
+    if(idx < SCENES.length - 1) iTimer = setTimeout(() => iShow(idx + 1), 750);
+  });
+}
+
+function closeIntro(){
+  iTok++; clearTimeout(iTimer); stopSpeak();
+  const el = $('intro');
+  el.classList.add('gone');
+  setTimeout(() => { el.style.display = 'none'; }, 500);
+}
+
+$('introNext').addEventListener('click', () => {
+  if(iIdx >= SCENES.length - 1) closeIntro();
+  else iShow(iIdx + 1);
+});
+$('introSkip').addEventListener('click', closeIntro);
+
+$('btnSound').addEventListener('click', function(){
+  voiceOn = !voiceOn;
+  this.classList.toggle('on', voiceOn);
+  this.textContent = voiceOn ? '🔊 声音' : '🔇 静音';
+  if(!voiceOn) stopSpeak();
+  this.blur();
+});
+
+$('btnStart').addEventListener('click', () => {
+  $('startMask').classList.add('gone');
+  const a = actx();
+  if(a && a.state === 'suspended') a.resume();
+  if(synth){ try{ const u = new SpeechSynthesisUtterance(' '); u.volume = 0; synth.speak(u); }catch(e){} }
+  setTimeout(() => iShow(0), 300);
+});
+
+$('btnStartSkip').addEventListener('click', () => {
+  $('startMask').classList.add('gone');
+  closeIntro();
+});
+
+$('btnReplay').addEventListener('click', () => {
+  const el = $('intro');
+  el.style.display = '';
+  void el.offsetWidth;
+  el.classList.remove('gone');
+  $('startMask').classList.add('gone');
+  iShow(0);
+});
+
+/* ============================================================
+   启动
+   ============================================================ */
+loadStats();
+$('score').textContent = stats.score;
+refreshStatBox();
+resetMinute();
+state.mode = 'learn';
+state.hour = 8; state.minute = 30; state.second = 0;
+updateReadout();
+render();
+</script>
+</body>
+</html>
