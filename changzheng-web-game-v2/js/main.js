@@ -69,7 +69,7 @@ var STATION_ART = {
   jiajinshan: { file: "jiajinshan-7-xueshan.png", scene: "翻越夹金山" },
   caodi:      { file: "caodi-8-caodian.png",      scene: "穿越草地" },
   lazikou:    { file: "lazikou-9-yubi.png",       scene: "腊子口天险" },
-  huishi:     { file: "huishi-10-sanshi.png",     scene: "会师于都集结" }
+  huishi:     { file: "huishi-10-sanshi.png",     scene: "会师会宁·将台堡" }
 };
 
 /* 审图号（固定底部，标出底图来源与审图号） */
