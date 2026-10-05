@@ -1,0 +1,1121 @@
+/* =====================================================
+   小红军长征记 2.0 · 剪纸 / 版画风格
+   底色基调：红、土黄、赭石、墨绿
+   红线：正文字体 ≥ 20px，按钮点击区 ≥ 48px
+   无任何「进度条 / 体力条 / 资源条 / 点数」
+   ===================================================== */
+
+:root {
+  --red:        #b3202a;   /* 剪纸红 */
+  --red-deep:   #8e1a22;
+  --clay:       #b3541e;   /* 赭石 */
+  --ochre:      #d9a441;   /* 土黄 */
+  --green:      #2f4a35;   /* 墨绿 */
+  --green-deep: #1f3326;
+  --paper:      #f4e6c8;   /* 米白纸色 */
+  --paper-dark: #e7d3ab;
+  --ink:        #3b2a1a;   /* 深褐墨 */
+  --gray:       #6b6b6b;   /* 推演印章灰 */
+  --redsoft:    #f6d9d3;
+  --yellowsoft: #fbeecd;
+  --greensoft:  #dceadc;
+  --bluesoft:   #d8e4ec;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", "SimHei", sans-serif;
+}
+
+#app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- 通用屏幕 ---------- */
+.screen {
+  flex: 1 1 auto;
+  max-width: 860px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px 20px 96px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- 版画纸纹标题 ---------- */
+.paper-title {
+  background: var(--red);
+  color: var(--paper);
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 4px;
+  text-align: center;
+  padding: 18px 12px;
+  margin-bottom: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 0 var(--red-deep);
+}
+
+.kicker {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--clay);
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+/* ---------- 正文与气泡约束 ---------- */
+p.body {
+  font-size: 21px;
+  line-height: 1.75;
+  margin-bottom: 16px;
+}
+
+.bubble {
+  background: #fffdf6;
+  border: 3px solid var(--ochre);
+  border-radius: 14px;
+  padding: 14px 18px;
+  font-size: 20px;
+  line-height: 1.6;
+  margin: 10px 0;
+  max-width: 2; /* 占位，无实际人数 */
+  box-shadow: 0 2px 0 var(--paper-dark);
+}
+/* 气泡最多两行的文案约束由数据 + 书写保证 */
+
+/* ---------- 金句（楷体金色引号框） ---------- */
+.quote-card {
+  font-family: "Kaiti SC", "KaiTi", "STKaiti", serif;
+  color: var(--red-deep);
+  font-size: 23px;
+  font-weight: 700;
+  text-align: center;
+  border: 2px dashed var(--ochre);
+  background: var(--yellowsoft);
+  border-radius: 12px;
+  padding: 16px;
+  margin: 18px 0;
+}
+
+/* ---------- 胶囊 / 标识 ---------- */
+.capsule {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 6px 18px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  margin: 4px 6px 4px 0;
+}
+.capsule.red   { background: var(--red); }
+.capsule.yellow{ background: #b8860b; }
+.capsule.green { background: var(--green); }
+.capsule.blue  { background: #3a6a8a; }
+
+.seal {
+  display: inline-block;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--gray);
+  border: 3px double var(--gray);
+  border-radius: 8px;
+  padding: 4px 12px;
+  margin-bottom: 16px;
+}
+
+/* ---------- 按钮（点击区 ≥ 48px） ---------- */
+button {
+  font-family: inherit;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--paper);
+  background: var(--red);
+  border: none;
+  border-radius: 12px;
+  padding: 16px 28px;
+  min-height: 48px;
+  cursor: pointer;
+  box-shadow: 0 4px 0 var(--red-deep);
+  transition: transform .08s ease, box-shadow .08s ease;
+}
+button:hover { filter: brightness(1.05); }
+button:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--red-deep); }
+button.secondary { background: var(--green); box-shadow: 0 4px 0 var(--green-deep); }
+button.ghost { background: var(--clay); }
+button.full { width: 100%; margin-top: 8px; }
+
+/* ---------- 引章五幕 ---------- */
+.intro-wrap {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 20px;
+}
+.intro-visual {
+  width: 220px;
+  height: 160px;
+  border: 4px dashed var(--clay);
+  border-radius: 14px;
+  background: var(--paper-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--clay);
+  font-size: 24px;
+  font-weight: 800;
+}
+.intro-actions { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 360px; }
+
+/* ---------- 主图（P1 艺术接入） ---------- */
+.hero-figure {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto 16px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 3px solid var(--ochre);
+  box-shadow: 0 3px 0 var(--paper-dark);
+  background: var(--paper-dark);
+}
+.hero-figure img.hero-img {
+  display: block;
+  width: 100%;
+  height: 240px;
+  object-fit: cover;
+  object-position: center;
+}
+.hero-fallback {
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px;
+  background: var(--paper-dark);
+  color: var(--clay);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* 手部操作占位：点击/滑动/碎片 */}
+.hint {
+  font-size: 20px;
+  color: var(--ink);
+  background: var(--redsoft);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+/* 地图碎片归位（第五幕） */
+.puzzle-slot {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 12px 0 20px;
+}
+.puzzle-piece {
+  width: 76px;
+  height: 76px;
+  border-radius: 10px;
+  background: var(--clay);
+  color: var(--paper);
+  font-size: 24px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.puzzle-piece.placed {
+  background: var(--green);
+  cursor: default;
+}
+.puzzle-piece.phantom {
+  background: var(--paper-dark);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+/* ---------- 长征地图（红飘带总览） ---------- */
+.map-wrap { flex: 1 1 auto; }
+.red-ribbon {
+  position: relative;
+  border: 3px solid var(--green);
+  border-radius: 16px;
+  background: var(--paper-dark);
+  padding: 28px 16px 16px;
+  margin: 14px 0 20px;
+}
+.ribbon-line {
+  position: absolute;
+  top: 38px;
+  left: 20%;
+  right: 20%;
+  height: 6px;
+  background: repeating-linear-gradient(90deg, var(--red), var(--red) 12px, var(--red-deep) 12px, var(--red-deep) 20px);
+  border-radius: 4px;
+}
+.map-stations {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  z-index: 1;
+}
+.map-station {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: var(--paper);
+  border: 3px solid var(--red);
+  border-radius: 14px;
+  padding: 10px 8px;
+  min-width: 88px;
+  cursor: pointer;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.map-station:hover { background: var(--redsoft); }
+.map-station .num {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--red);
+  color: var(--paper);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+/* ---------- 站点页 ---------- */
+.station-header { margin-bottom: 18px; }
+.station-meta { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0; font-size: 20px; }
+.station-meta .tag {
+  background: var(--greensoft);
+  border: 2px solid var(--green);
+  color: var(--green-deep);
+  border-radius: 8px;
+  padding: 6px 12px;
+}
+
+.choice-grid { display: grid; gap: 14px; margin-top: 14px; grid-template-columns: 1fr; }
+.choice-grid button { text-align: left; line-height: 1.5; }
+
+.card {
+  background: #fffdf6;
+  border: 3px solid var(--ochre);
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin: 14px 0;
+}
+.card h3 { font-size: 21px; color: var(--red-deep); margin-bottom: 8px; }
+
+/* ---------- 过场 ---------- */
+.transition-wrap {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 18px;
+}
+
+/* ---------- 结局 ---------- */
+.ending-wrap {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 18px;
+}
+
+/* ---------- 固定底部审图号占位 ---------- */
+.review-no {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--green-deep);
+  color: var(--paper);
+  font-size: 20px;
+  text-align: center;
+  padding: 10px 12px;
+  z-index: 10;
+}
+
+@media (min-width: 640px) {
+  .choice-grid { grid-template-columns: 1fr; }
+  .intro-visual { width: 300px; height: 200px; }
+  .hero-figure img.hero-img { height: 340px; }
+}
+
+/* =====================================================
+   P0b1 引擎层样式：旅程印记 / 收集 / 补救 / 红飘带地图
+   ===================================================== */
+
+/* 站点页顶部：当前站点 / 下一站 */
+.map-target {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin: 4px 0 18px;
+}
+.target-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  border: 3px solid var(--green);
+  border-radius: 12px;
+  padding: 10px 22px;
+  background: var(--greensoft);
+}
+.target-label { font-size: 20px; color: var(--green-deep); font-weight: 700; }
+.target-name  { font-size: 24px; color: var(--red-deep); font-weight: 800; }
+
+/* 红飘带地图 · 站点卡 */
+.station-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 14px;
+  margin: 16px 0;
+}
+.station-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: var(--paper);
+  border: 3px solid var(--red);
+  border-radius: 14px;
+  padding: 12px 10px;
+  font-size: 21px;
+  font-weight: 700;
+  color: var(--ink);
+  text-align: center;
+  box-shadow: 0 3px 0 var(--paper-dark);
+}
+.station-card:hover { background: var(--redsoft); }
+.station-card.cleared { border-color: var(--green); background: var(--greensoft); }
+.station-card .card-num {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: var(--red); color: var(--paper);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+}
+.station-card.cleared .card-num { background: var(--green); }
+.station-card .card-name { font-size: 22px; }
+.station-card .card-time { font-size: 18px; font-weight: 400; color: var(--gray); }
+.station-card .card-badge {
+  font-size: 18px; font-weight: 700; color: var(--gray);
+}
+.station-card.cleared .card-badge { color: var(--green-deep); }
+
+/* 过场小星点 */
+.transition-row {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 6px 0 10px;
+}
+.transition-star {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: var(--paper-dark);
+  border: 2px dashed var(--clay);
+  border-radius: 12px;
+  padding: 8px 18px;
+  font-size: 18px;
+  color: var(--clay);
+}
+.transition-star .star-icon { font-size: 26px; }
+.transition-star .star-name { font-size: 20px; font-weight: 700; color: var(--ink); }
+.transition-star .star-time { font-size: 16px; color: var(--gray); }
+.transition-star:hover { background: var(--yellowsoft); }
+
+.map-note { font-size: 20px; color: var(--gray); text-align: center; margin-top: 4px; }
+
+/* 站点卡上的已走通标记（迷你红飘带用） */
+.map-station.cleared { border-color: var(--green); background: var(--greensoft); }
+.map-station.cleared .num { background: var(--green); }
+.cleared-mark {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--green-deep);
+}
+
+/* ---------- P0-map：标准底图 + 独立路线叠加层 ---------- */
+.map-stage { margin: 10px 0 6px; }
+.map-base {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 9567 / 6791;
+  border: 3px solid var(--green);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--greensoft);
+  box-shadow: 0 3px 0 var(--paper-dark);
+}
+.map-basemap {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  display: block;
+  user-select: none;
+}
+/* 独立 SVG 红飘带：只作叠加层，不写入 JPG */
+.route-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+.route-line {
+  fill: none;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+.route-line-outer { stroke: var(--paper); stroke-width: 3; opacity: .85; }
+.route-line-inner { stroke: var(--red); stroke-width: 1.8; }
+/* 独立 DOM 站点标记层 */
+.route-markers {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.route-marker {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+.route-dot {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--red);
+  border: 3px solid var(--paper);
+  color: var(--paper);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  font-weight: 800;
+  box-shadow: 0 2px 3px rgba(0, 0, 0, .35);
+}
+.route-marker:hover .route-dot { background: var(--red-deep); }
+.route-marker.cleared .route-dot { background: var(--green); border-color: var(--paper); }
+.route-label {
+  background: var(--paper);
+  border: 2px solid var(--red);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .25);
+}
+.route-marker.cleared .route-label { border-color: var(--green); }
+.route-cleared {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--green-deep);
+  background: var(--greensoft);
+  border: 2px solid var(--green);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+.map-source-line {
+  margin-top: 10px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--gray);
+  text-align: center;
+}
+.map-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--red-deep);
+  background: var(--paper-dark);
+  text-align: center;
+}
+
+/* 上一站印记联动叙事 */
+.impact-card {
+  background: var(--yellowsoft);
+  border: 3px solid var(--ochre);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+}
+.impact-title { font-size: 20px; font-weight: 800; color: var(--clay); margin-bottom: 6px; }
+
+/* 抉择：已选高亮 */
+.choice-tip { font-size: 20px; color: var(--gray); margin-bottom: 10px; }
+.choice-grid button.chosen {
+  background: var(--green);
+  box-shadow: 0 4px 0 var(--green-deep);
+  outline: 3px solid var(--ochre);
+}
+
+/* 轻补救 */
+.remedy-hint {
+  font-size: 20px;
+  line-height: 1.6;
+  color: var(--ink);
+  background: var(--redsoft);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin: 6px 0 12px;
+  min-height: 0;
+}
+.danger-actions {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.remedy-btn { flex: 1 1 200px; }
+
+/* 通关收集 · 四件套卡槽（空槽 = 未收集） */
+.collect-slots {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.collect-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 128px;
+  padding: 14px 8px;
+  border: 3px dashed var(--gray);
+  border-radius: 14px;
+  background: var(--paper-dark);
+  color: var(--gray);
+}
+.collect-slot .slot-icon { font-size: 34px; line-height: 1; }
+.collect-slot .slot-label { font-size: 20px; font-weight: 700; }
+.collect-slot.lit {
+  border: 3px solid var(--green);
+  background: var(--greensoft);
+  color: var(--green-deep);
+}
+.pass-btn { margin-top: 8px; }
+
+@media (min-width: 640px) {
+  .station-cards { grid-template-columns: repeat(5, 1fr); }
+}
+
+/* =====================================================
+   于都站 · 昼拆夜搭浮桥（P0b2 minigame）
+   纯 DOM，无 canvas；红线：字体≥20px、按钮≥48px、动画≤4s。
+   ===================================================== */
+.danger-area { margin: 12px 0 4px; }
+
+.game-placeholder {
+  background: var(--paper-dark);
+  border: 3px dashed var(--clay);
+  border-radius: 14px;
+  padding: 20px;
+  text-align: center;
+  font-size: 20px;
+  color: var(--clay);
+}
+.game-placeholder-icon { font-size: 40px; margin-bottom: 8px; }
+.game-placeholder-text { font-weight: 700; }
+
+.bridge-game {
+  position: relative;
+  border-radius: 16px;
+  padding: 14px;
+  margin: 8px 0 4px;
+  overflow: hidden;
+  transition: background-color .5s ease, color .5s ease;
+}
+/* 夜 */
+.bridge-game.night {
+  background: #1b2740;
+  color: #e8eef7;
+  border: 3px solid #2c3e67;
+}
+/* 昼 */
+.bridge-game.day {
+  background: #bfe0f0;
+  color: #20303f;
+  border: 3px solid #8cc2dd;
+}
+.bridge-game.complete {
+  outline: 4px solid var(--ochre);
+  outline-offset: 2px;
+}
+
+/* 天空：月亮 / 太阳 */
+.bg-sky {
+  position: relative;
+  height: 46px;
+  margin-bottom: 6px;
+}
+.sky-icon {
+  position: absolute;
+  top: 0;
+  right: 10px;
+  font-size: 30px;
+  line-height: 1;
+}
+.bridge-game.night .sky-icon { filter: drop-shadow(0 0 6px #f7e6a0); }
+.bridge-game.day .sky-icon { filter: none; }
+
+/* 敌机影子（昼间扫过） */
+.plane {
+  position: absolute;
+  left: -80px;
+  top: 0;
+  font-size: 30px;
+  z-index: 3;
+  opacity: .5;
+}
+.plane.flying { animation: bridge-sweep 2.6s linear forwards; }
+@keyframes bridge-sweep { from { left: -80px; } to { left: 100%; } }
+
+/* 顶部小贴士 */
+.tip-bar {
+  background: var(--yellowsoft);
+  color: var(--ink);
+  border: 2px solid var(--ochre);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 20px;
+  font-weight: 700;
+  margin: 4px 0 10px;
+  text-align: center;
+}
+
+/* 昼/夜 与 藏桥 按钮行 */
+.btn-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.btn-row button { font-size: 20px; min-height: 48px; flex: 0 1 auto; }
+.toggle-btn { background: var(--green); box-shadow: 0 4px 0 var(--green-deep); }
+.bridge-game.day .toggle-btn { background: var(--ochre); box-shadow: 0 4px 0 #a97c2a; }
+.hide-btn { background: var(--clay); box-shadow: 0 4px 0 #7c3d12; }
+
+/* 河面 */
+.river {
+  position: relative;
+  height: 220px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #5b8fb3, #41719c 45%, #3a6a9a 70%, #355f8c);
+  border: 3px solid #2c4c6e;
+  margin-bottom: 12px;
+}
+
+/* 锚点 */
+.anchor {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  min-width: 64px;
+  min-height: 48px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: 800;
+  text-align: center;
+  cursor: pointer;
+  border: 3px solid #bcd8ea;
+  color: #eaf3fa;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: rgba(20, 40, 60, .45);
+  box-shadow: 0 2px 0 rgba(0,0,0,.2);
+}
+.anchor.calm { border-color: #9fe0b0; background: rgba(40,110,70,.55); }
+.anchor.fast { border-color: #f3c25f; background: rgba(140,90,20,.5); }
+.anchor .anchor-num { width: 26px; height: 26px; line-height: 26px; border-radius: 50%; background: #bfe8c8; color: #1f5a34; font-size: 18px; }
+.anchor .placed-bridge {
+  position: absolute;
+  top: -26px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #c98a2e;
+  color: #fff;
+  border: 2px solid #fff;
+  border-radius: 8px;
+  padding: 2px 8px;
+  font-size: 18px;
+  font-weight: 800;
+  white-space: nowrap;
+  box-shadow: 0 2px 0 rgba(0,0,0,.2);
+}
+.anchor.shake { animation: bridge-shake .5s; }
+@keyframes bridge-shake {
+  0%,100% { transform: translate(-50%,-50%); }
+  25% { transform: translate(calc(-50% - 7px),-50%); }
+  50% { transform: translate(calc(-50% + 7px),-50%); }
+  75% { transform: translate(calc(-50% - 4px),-50%); }
+}
+
+/* 岸上桥节托盘 */
+.bank {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 10px;
+  background: var(--paper-dark);
+  border: 3px solid var(--clay);
+  border-radius: 14px;
+  margin-bottom: 10px;
+}
+.bank::before {
+  content: "岸 · 桥节";
+  flex-basis: 100%;
+  text-align: center;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--clay);
+}
+.piece {
+  position: relative;
+  min-width: 64px;
+  min-height: 56px;
+  font-size: 20px;
+  font-weight: 800;
+  color: #5a3a0d;
+  background: #e8b55a;
+  border: 3px solid #b57f22;
+  border-radius: 10px;
+  box-shadow: 0 4px 0 #8a5f1b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.piece .piece-n {
+  width: 26px; height: 26px; line-height: 26px;
+  border-radius: 50%;
+  background: #fff3d6;
+  color: #7a4f12;
+  font-size: 18px;
+  font-weight: 900;
+}
+.piece.selected {
+  outline: 4px solid var(--ochre);
+  filter: brightness(1.12);
+}
+.piece:hover { filter: brightness(1.08); }
+
+/* 反馈与状态 */
+.bridge-msg {
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--ink);
+  background: #fffdf6;
+  border: 3px solid var(--ochre);
+  border-radius: 10px;
+  padding: 10px 12px;
+  min-height: 48px;
+  margin-bottom: 8px;
+}
+.bridge-msg.shake { animation: msg-shake .5s; }
+@keyframes msg-shake {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  50% { transform: translateX(6px); }
+  75% { transform: translateX(-3px); }
+}
+.bridge-status {
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--green-deep);
+}
+.bridge-game.complete .bridge-status { font-size: 24px; }
+
+/* =====================================================
+   乌江站 · 找一处可渡点（ferry）
+   ===================================================== */
+.ferry-game {
+  position: relative;
+  border-radius: 16px;
+  padding: 14px;
+  margin: 8px 0 4px;
+  background: #eef4fb;
+  color: var(--ink);
+  border: 3px solid #b7cddf;
+  transition: outline-color .3s ease;
+}
+.ferry-game.complete { outline: 4px solid var(--ochre); outline-offset: 2px; }
+
+.ferry-river {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  padding: 16px 10px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #5b8fb3, #3a6a9a);
+  border: 3px solid #2c4c6e;
+  margin-bottom: 10px;
+}
+.ferry-point {
+  flex: 1 1 26%;
+  min-width: 130px;
+  min-height: 78px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 3px solid #bcd8ea;
+  background: rgba(20, 40, 60, .5);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  box-shadow: 0 3px 0 rgba(0,0,0,.25);
+}
+.ferry-point-name { font-size: 20px; font-weight: 800; }
+.ferry-point-note { font-size: 18px; opacity: .9; }
+.ferry-point.crossed {
+  opacity: .55;
+  text-decoration: line-through;
+  border-color: #e8a9a9;
+  background: rgba(120, 40, 40, .5);
+  cursor: default;
+}
+.ferry-point.chosen {
+  border-color: #9fe0b0;
+  background: rgba(40, 110, 70, .6);
+  outline: 3px solid #ffe6a0;
+  outline-offset: 1px;
+}
+
+.ferry-card {
+  background: #fffdf6;
+  border: 3px solid var(--ochre);
+  border-radius: 12px;
+  padding: 6px 12px 10px;
+  margin-bottom: 10px;
+}
+.ferry-hidden { display: none; }
+.ferry-card-title {
+  font-size: 20px;
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 4px;
+}
+.ferry-factor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 20px;
+  padding: 2px 0;
+}
+.ferry-factor-k { font-weight: 800; width: 52px; }
+.ferry-factor-s { color: #d98a1f; letter-spacing: 2px; }
+.ferry-factor-l { color: var(--ink); }
+.bridge-msg, .ferry-msg, .channel-msg {
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: var(--ink);
+  background: #fffdf6;
+  border: 3px solid var(--ochre);
+  border-radius: 10px;
+  padding: 10px 12px;
+  min-height: 48px;
+  margin-bottom: 8px;
+}
+.bridge-msg.shake, .ferry-msg.shake, .channel-msg.shake { animation: msg-shake .5s; }
+
+.ferry-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.ferry-step {
+  font-size: 20px;
+  font-weight: 800;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #e6eef5;
+  border: 2px solid #b7cddf;
+  color: #6a7b89;
+  transition: background-color .4s ease, color .4s ease, border-color .4s ease;
+}
+.ferry-step.lit {
+  background: #d8efdb;
+  border-color: var(--green-deep);
+  color: var(--green-deep);
+}
+.ferry-step-text { font-size: 20px; font-weight: 600; line-height: 1.5; color: var(--ink); min-height: 26px; margin-left: 16px; }
+
+.ferry-status, .channel-status {
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--green-deep);
+}
+.ferry-game.complete .ferry-status,
+.channel-game.complete .channel-status { font-size: 24px; }
+
+/* =====================================================
+   遵义站 · 等高线上找出口（channel）
+   ===================================================== */
+.channel-game {
+  position: relative;
+  border-radius: 16px;
+  padding: 14px;
+  margin: 8px 0 4px;
+  background: #f2efe6;
+  color: var(--ink);
+  border: 3px solid #cdbf9c;
+  transition: outline-color .3s ease;
+}
+.channel-game.complete { outline: 4px solid var(--ochre); outline-offset: 2px; }
+
+.channel-terrain {
+  position: relative;
+  height: 240px;
+  border-radius: 14px;
+  border: 3px solid #9db07b;
+  overflow: hidden;
+  margin-bottom: 10px;
+  background: #eef0d9;
+}
+.contour {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(85deg, rgba(120,140,80,.25) 0 2px, rgba(0,0,0,0) 2px 26px),
+    repeating-linear-gradient(175deg, rgba(120,140,80,.22) 0 2px, rgba(0,0,0,0) 2px 30px);
+}
+.contour-mountain {
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 42%;
+  border-left: 3px dashed #8a9a63;
+  background:
+    repeating-linear-gradient(85deg, rgba(90,110,60,.5) 0 2px, rgba(0,0,0,0) 2px 9px),
+    repeating-linear-gradient(175deg, rgba(90,110,60,.45) 0 2px, rgba(0,0,0,0) 2px 10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.contour-mtn-label {
+  font-size: 30px;
+  font-weight: 900;
+  color: #4c5b35;
+  opacity: .9;
+}
+.channel-routes {
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  width: 58%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  padding: 12px;
+}
+.channel-route {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 20px;
+  font-weight: 800;
+  color: #3f5226;
+  background: rgba(255, 253, 240, .85);
+  border: 3px dashed #7a8c4f;
+  border-radius: 12px;
+  padding: 8px;
+  cursor: pointer;
+  min-height: 56px;
+}
+.channel-route-note { font-size: 18px; font-weight: 600; opacity: .9; }
+.channel-route.crossed {
+  opacity: .5;
+  text-decoration: line-through;
+  border-color: #cf8a8a;
+  background: rgba(250, 235, 235, .8);
+  cursor: default;
+}
+.channel-route.chosen {
+  border: 3px solid var(--green-deep);
+  background: #d8efdb;
+  color: var(--green-deep);
+}
+
+.channel-card {
+  text-align: center;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--green-deep);
+  background: #eaf6dd;
+  border: 3px solid var(--green-deep);
+  border-radius: 12px;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+.channel-hidden { display: none; }
+
+.channel-sci {
+  font-size: 20px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: #dff0f7;
+  border: 2px solid #7fb4cd;
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+}
