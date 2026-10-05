@@ -550,7 +550,7 @@ function fighterSpriteKey(isPlayer, attack, defending, dashTimer, hitTimer) {
   return `${side}-idle`;
 }
 
-function drawFighter(x, isPlayer, attack, defending, dashTimer, hitTimer) {
+function drawFighter(x, isPlayer, attack, defending, dashTimer, hitTimer, weapon) {
   const bob = Math.sin(gameTime * 0.004 + (isPlayer ? 0 : 1.6)) * 4;
   const attackOffset = attack ? Math.sin(Math.min(1, attack.progress) * Math.PI) * 28 : 0;
   const accent = isPlayer ? '#7deaff' : '#ff9cbd';
@@ -572,6 +572,34 @@ function drawFighter(x, isPlayer, attack, defending, dashTimer, hitTimer) {
   }
   if (defending) drawBlockEffect(36, -108, accent);
   drawTrimmedSprite(img, 0, 0, 185, 218);
+
+  // 画武器
+  if (weapon && weapon.id !== 'gauntlet') {
+    const weaponImg = images[`weapon_${weapon.id}`];
+    if (weaponImg && weaponImg.complete && weaponImg.naturalWidth > 0) {
+      ctx.save();
+      const wscale = 0.55;
+      const ww = weaponImg.naturalWidth * wscale;
+      const wh = weaponImg.naturalHeight * wscale;
+      // 右手位置：未翻转时在右侧，翻转后在左侧
+      const wx = isPlayer ? 16 : -16;
+      const wy = -100;
+      // 攻击时挥动
+      let rot = 0.25;
+      if (attack && attack.progress) {
+        rot = -1.05 + attack.progress * 2.2;
+      }
+      if (defending) rot = -0.4;
+      // 翻转修正旋转方向
+      if (!isPlayer) rot = -rot + 0.5;
+      ctx.translate(wx, wy);
+      ctx.rotate(rot);
+      // 武器握柄对准手
+      ctx.drawImage(weaponImg, -ww * 0.3, -wh * 0.5, ww, wh);
+      ctx.restore();
+    }
+  }
+
   ctx.restore();
 }
 
@@ -768,8 +796,8 @@ function render() {
   if (gameState === 'FIGHT' || gameState === 'GAMEOVER') {
     drawAttackEffect(playerX, GROUND_Y, playerWeapon, playerAttack && playerAttack.progress, true);
     drawAttackEffect(enemyX, GROUND_Y, enemyWeapon, enemyAttack && enemyAttack.progress, false);
-    drawFighter(playerX, true, playerAttack, playerDefending, playerDashTimer, playerHitTimer);
-    drawFighter(enemyX, false, enemyAttack, enemyDefending, enemyDashTimer, enemyHitTimer);
+    drawFighter(playerX, true, playerAttack, playerDefending, playerDashTimer, playerHitTimer, playerWeapon);
+    drawFighter(enemyX, false, enemyAttack, enemyDefending, enemyDashTimer, enemyHitTimer, enemyWeapon);
     drawParticles();
     drawHUD();
     if (gameState === 'GAMEOVER') drawGameOver();

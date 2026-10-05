@@ -743,6 +743,13 @@ function route() {
   else if (hash === "#/map") renderMap();
   else if (hash.indexOf("#/station/") === 0) {
     var id = hash.replace("#/station/", "");
+    /* M1 跳站守卫：长征每一步都不能跳过 ——
+       站 index>0 且前一站未通关 → 拒绝直达，跳回当前进度地图。 */
+    var idx = MAP_ROUTE.findIndex(function (m) { return m.id === id; });
+    if (idx > 0 && !stationCleared(MAP_ROUTE[idx - 1].id)) {
+      location.hash = "#/map";
+      return;
+    }
     renderStation(id);
   }
   else if (hash.indexOf("#/trans/") === 0) {
