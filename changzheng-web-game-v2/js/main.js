@@ -94,6 +94,86 @@ var MAP_ROUTE = [
   { id: "huishi",      x: 51.6, y: 49.4 }
 ];
 
+/* ===================================================
+   沿红飘带逐格前进（P2 旅程框架）
+   - 长征每一步都不能跳过 → 棋子只能向前一格、
+     未通关的主站会拦住去路（必须完成小游戏才放行）。
+   - 站与站之间插入「事件格」（风景/历史/科学）作穿插，
+     一图一句，看完即走。
+   - 主线推进顺序 == 真实长征路线，不可跳站。
+   =================================================== */
+var CZ_STEP_KEY = "cz_step";
+
+/* 站间事件格：9 个（站 i 与站 i+1 之间），用一个简短“一图一句” */
+var JOURNEY_EVENTS = [
+  { type: "science", icon: "🔎", title: "看地图",
+    text: "从于都出发往西，先遇见的不是打不打的仗，而是能不能渡过的河。" },
+  { type: "story",   icon: "📖", title: "方向",
+    text: "渡乌江后，队伍在一个叫遵义的地方，重新想清楚了前进的方向。" },
+  { type: "scenery", icon: "🖼️", title: "望赤水",
+    text: "从遵义往北，山路绕着山腰转，最省力的是沿着山谷走。" },
+  { type: "science", icon: "🔎", title: "四渡的巧劲",
+    text: "赤水河弯弯绕绕，队伍来回渡了四次，用巧劲让敌人追不上。" },
+  { type: "scenery", icon: "🖼️", title: "到大渡河",
+    text: "渡过大江，前面是高山峡谷，大渡河把两边的山峰劈成两半。" },
+  { type: "science", icon: "🔎", title: "雪山越来越高",
+    text: "桥过去是一座很高的雪山。山越高，风越大、空气越少。" },
+  { type: "scenery", icon: "🖼️", title: "到草地边",
+    text: "翻过雪山，躺在前面的是望不到边的沼泽草地。" },
+  { type: "science", icon: "🔎", title: "窄山口",
+    text: "草地之后是一道很窄的山口，两边都是峭壁，叫腊子口。" },
+  { type: "story",   icon: "📖", title: "盼会师",
+    text: "过了腊子口，三支队伍从不同方向，走向同一个会合点。" }
+];
+
+function czGetStep() {
+  try {
+    var n = typeof localStorage !== "undefined" && localStorage ? parseInt(localStorage.getItem(CZ_STEP_KEY), 10) : NaN;
+    return isNaN(n) ? 0 : n;
+  } catch (e) { return 0; }
+}
+function czSetStep(n) {
+  try { if (typeof localStorage !== "undefined" && localStorage) localStorage.setItem(CZ_STEP_KEY, String(n)); } catch (e) {}
+}
+
+/* 旅程格子序列：站0→事件0→站1→事件1→…→站9（共 19 格）
+   站格: {kind:'station', id, idx}；事件格: {kind:'event', e, idx} */
+function journeyTiles() {
+  var tiles = [];
+  STATION_IDS.forEach(function (id, i) {
+    tiles.push({ kind: "station", id: id, idx: i });
+    if (JOURNEY_EVENTS[i]) tiles.push({ kind: "event", e: JOURNEY_EVENTS[i], before: id, next: STATION_IDS[i + 1], idx: i });
+  });
+  return tiles;
+}
+function journeyTileAt(step) { var t = journeyTiles(); return t[Math.max(0, Math.min(t.length - 1, step))]; }
+
+/* 当前主站关卡门槛：step 落在某个未通关主站格吗？ */
+function isBlockedStationTile(tile) {
+  return tile.kind === "station" && !stationCleared(tile.id);
+}
+
+/* 把推进卡“贴”到下一个未通关主站（不跳站，找当前 frontier） */
+function frontierStep() {
+  var tiles = journeyTiles();
+  var step = czGetStep();
+  /* 若当前格子之后有未通关主站，把棋子固定在该主站格，避免停在事件/已通格上乱跳 */
+  var i;
+  for (i = step; i < tiles.length; i++) {
+    if (isBlockedStationTile(tiles[i])) return i;
+  }
+  /* 从后往前兜底（可能 step 过后已全通关，就停在会师） */
+  for (i = tiles.length - 1; i >= 0; i--) { if (tiles[i].kind === "station") return i; }
+  return tiles.length - 1;
+}
+
+function renderJourneyFlag(base, frontierTile) {
+  /* 在地图叠加层上放一枚小红旗棋子，定位在推进到的那个主站 */
+  var m = MAP_ROUTE[frontierTile.idx];
+  var flag = el("span", { class: "route-flag", style: "left:" + m.x + "%;top:" + m.y + "%;" });
+  base.appendChild(flag);
+}
+
 function buildMapStage() {
   var wrap = el("div", { class: "map-stage" });
   var base = el("div", { class: "map-base" }, [
@@ -151,6 +231,13 @@ function buildMapStage() {
 
   base.appendChild(svg);
   base.appendChild(markers);
+  /* 小红旗棋子：定位在推进到的当前格对应主站 */
+  var stepTile = journeyTileAt(czGetStep());
+  var fIdx = stepTile.kind === "station" ? stepTile.idx : (getStation(stepTile.next) ? getStation(stepTile.next).idx : stepTile.idx);
+  var fm = MAP_ROUTE[fIdx];
+  if (fm) {
+    base.appendChild(el("span", { class: "route-flag", style: "left:" + fm.x + "%;top:" + fm.y + "%;" }));
+  }
   wrap.appendChild(base);
   wrap.appendChild(el("div", {
     class: "map-source-line",
@@ -301,56 +388,105 @@ function renderIntro() {
 
 /* ---------- 地图 ---------- */
 function renderMap() {
-  var cn = currentAndNext(STATION_IDS);
-  var cur = getStation(cn.currentId);
-  var nextName = cn.nextId === "ending" ? "会师 · 凯旋" : (getStation(cn.nextId) ? getStation(cn.nextId).name : "会师");
+  var tiles = journeyTiles();
+  var step = Math.max(0, Math.min(tiles.length - 1, czGetStep()));
+  var tile = tiles[step];
+  var allCleared = STATION_IDS.every(function (id) { return stationCleared(id); });
 
-  var targetRow = el("div", { class: "map-target" }, [
-    el("div", { class: "target-item" }, [ el("span", { class: "target-label", text: "当前站点" }), el("span", { class: "target-name", text: cur ? cur.name : "" }) ]),
-    el("div", { class: "target-item" }, [ el("span", { class: "target-label", text: "下一站" }), el("span", { class: "target-name", text: nextName }) ])
+  /* --- 旅程棋盘轨道：19 格（站 + 站间事件穿插） --- */
+  var track = el("div", { class: "journey-track" });
+  tiles.forEach(function (t, i) {
+    var cls = "jtile " + t.kind + (i === step ? " now" : "");
+    var node = el("div", { class: cls });
+    if (t.kind === "station") {
+      var st = getStation(t.id);
+      node.appendChild(el("span", { class: "jt-num", text: String(t.idx + 1) }));
+      node.appendChild(el("span", { class: "jt-name", text: st ? st.name : "" }));
+      if (stationCleared(t.id)) node.classList.add("done");
+      if (i === step && !stationCleared(t.id)) node.classList.add("blocked");
+    } else {
+      node.appendChild(el("span", { class: "jt-ico", text: t.e.icon }));
+      node.classList.add(stationCleared(t.before) ? "passed" : "ahead");
+    }
+    track.appendChild(node);
+  });
+
+  /* --- 旅程推进区：当前格的操作卡 --- */
+  var title, body, actionLabel, action;
+  if (tile.kind === "station") {
+    var s = getStation(tile.id);
+    if (stationCleared(tile.id)) {
+      title = "✅ " + (s ? s.name : "") + " 已走通";
+      if (allCleared) {
+        body = "你走完了从于都到会师的整条红飘带。十站一个不少——把集齐的四件套拼成画卷，去看属于你的结尾。";
+        actionLabel = "🏁 凯旋！去看结局画卷";
+        action = function () { location.hash = "#/ending"; };
+      } else {
+        body = "休息一下，沿着红飘带继续向前走，下一站还有新的挑战。";
+        actionLabel = "向前走一步 →";
+        action = function () { czSetStep(step + 1); renderMap(); };
+      }
+    } else {
+      title = "⚑ 走到：" + (s ? s.name : "") + "（第 " + (tile.idx + 1) + " 站）";
+      body = "长征的每一步都不能跳过。先完成「" + (s ? s.name : "") + "」里的小游戏，红飘带才会继续向前延伸。";
+      actionLabel = "进入「" + (s ? s.name : "") + "」· 完成小游戏";
+      action = function () { location.hash = "#/station/" + tile.id; };
+    }
+  } else {
+    title = tile.e.icon + "  路过 · " + (tile.e.title || "前路");
+    body = tile.e.text;
+    actionLabel = "继续走 →";
+    action = function () { czSetStep(step + 1); renderMap(); };
+  }
+  var journeyCard = el("div", { class: "journey-card" }, [
+    track,
+    el("div", { class: "journey-body" }, [
+      el("div", { class: "journey-title", text: title }),
+      el("p", { class: "journey-text", text: body })
+    ]),
+    el("button", { class: "full secondary journey-act", text: actionLabel })
   ]);
+  journeyCard.querySelector(".journey-act").addEventListener("click", action);
 
+  /* --- 站卡：未到的主站锁定（只能进入已走通或当前那一站） --- */
   var cards = el("div", { class: "station-cards" });
   STATIONS.forEach(function (s, i) {
     var cleared = stationCleared(s.id);
-    cards.appendChild(el("button", {
-      class: "station-card" + (cleared ? " cleared" : ""),
-      "data-href": "#/station/" + s.id
+    var reachable = cleared || (tile.kind === "station" && i === tile.idx);
+    var card = el("button", {
+      class: "station-card" + (cleared ? " cleared" : "") + (reachable ? "" : " locked"),
+      "data-id": s.id
     }, [
       el("div", { class: "card-num", text: String(i + 1) }),
       el("div", { class: "card-name", text: s.name }),
       el("div", { class: "card-time", text: s.time }),
-      el("div", { class: "card-badge", text: cleared ? "已走通" : "待出发" })
-    ]));
+      el("div", { class: "card-badge", text: cleared ? "已走通" : (reachable ? "当前" : "未到") })
+    ]);
+    if (reachable) card.setAttribute("data-href", "#/station/" + s.id);
+    cards.appendChild(card);
   });
   cards.addEventListener("click", function (e) {
-    var b = e.target.closest && e.target.closest("[data-href]");
+    var b = e.target.closest("[data-href]");
     if (b) location.hash = b.getAttribute("data-href");
   });
 
   var transRow = el("div", { class: "transition-row" });
   TRANSITIONS.forEach(function (t) {
-    transRow.appendChild(el("button", {
-      class: "transition-star",
-      "data-href": "#/trans/" + t.id
-    }, [
+    transRow.appendChild(el("button", { class: "transition-star", "data-href": "#/trans/" + t.id }, [
       el("span", { class: "star-icon", text: "★" }),
       el("span", { class: "star-name", text: t.name }),
       el("span", { class: "star-time", text: t.time })
     ]));
   });
-  transRow.addEventListener("click", function (e) {
-    var b = e.target.closest && e.target.closest("[data-href]");
-    if (b) location.hash = b.getAttribute("data-href");
-  });
+  transRow.addEventListener("click", function (e) { var b = e.target.closest("[data-href]"); if (b) location.hash = b.getAttribute("data-href"); });
 
   var screen = el("div", { class: "screen" }, [
     el("div", { class: "map-wrap" }, [
       el("div", { class: "kicker", text: "长征红飘带总览" }),
-      el("div", { class: "paper-title", text: "长征地图" }),
-      el("p", { class: "body", text: "从于都出发，沿着红飘带一站一站走到会师。点一站，就进入那一站的故事；点小星点，看沿途过场。" }),
+      el("div", { class: "paper-title", text: "沿着红飘带，一站一站向前" }),
+      el("p", { class: "body", text: "小红旗会停在你这会儿走到的地方。每个主站都必须完成小游戏才能继续走——长征的每一步都不能跳过。以后走到哪，下次打开还从那继续。" }),
       buildMapStage(),
-      targetRow,
+      journeyCard,
       cards,
       transRow,
       el("p", { class: "map-note", text: "红飘带会随你走过的一站一站，一段一段向前延伸。" })
@@ -441,10 +577,17 @@ function renderStation(id) {
     renderStation(id);           /* 重建险阻区；旅程印记不清空 */
   });
 
-  /* 险阻区：有已注册玩法则渲染小游戏，否则保持占位 */
+  /* 险阻区：有已注册玩法则渲染小游戏，否则保持占位。
+     完成态由小游戏在根节点加 class "complete" 标记，用 watchCompletion 监听，
+     触发后放行“我通过了这一站”/“下一站”。 */
+  var gameDone = false;
   var dangerArea = el("div", { class: "danger-area" });
   if (s.interactive && s.interactive.type && s.interactive.type !== "TODO") {
     renderDanger(dangerArea, s, null);   /* 玩法只做完成判定；点亮由“我通过了这一站”触发 */
+    watchCompletion(dangerArea, function () {
+      gameDone = true;
+      updateGate();
+    });
   } else {
     var dangerSeal = el("div", { class: "seal", text: "玩法：待实现（P0b）" });
     dangerArea.appendChild(dangerSeal);
@@ -481,29 +624,36 @@ function renderStation(id) {
     }))
   ]);
 
-  var passBtn = el("button", {
-    class: "full secondary pass-btn",
-    text: cleared ? "已走过这一站 · 返回地图" : "我通过了这一站"
-  });
+  var passBtn = el("button", { class: "full secondary pass-btn" });
   passBtn.addEventListener("click", function () {
-    if (!cleared) collectUnlock(id);
+    if (!stationCleared(id)) collectUnlock(id);
     location.hash = "#/map";
   });
 
-  var nav = el("div", { style: "display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:20px;" }, [
-    el("button", { class: "ghost", text: "← 返回地图" }),
-    el("button", { text: "下一站 →" })
-  ]);
-  nav.addEventListener("click", function (e) {
-    var btns = nav.querySelectorAll("button");
-    var which = Array.prototype.indexOf.call(btns, e.target);
-    if (which === 0) location.hash = "#/map";
-    else {
-      var nextId = STATION_IDS[index + 1];
-      if (nextId) location.hash = "#/station/" + nextId;
-      else location.hash = "#/ending";
-    }
+  var backBtn = el("button", { class: "ghost", text: "← 返回地图" });
+  var nextBtn = el("button", { text: "下一站 →" });
+  var nav = el("div", { style: "display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:20px;" }, [backBtn, nextBtn]);
+  backBtn.addEventListener("click", function () { location.hash = "#/map"; });
+  nextBtn.addEventListener("click", function () {
+    var nextId = STATION_IDS[index + 1];
+    if (nextId) location.hash = "#/station/" + nextId;
+    else location.hash = "#/ending";
   });
+
+  /* 通关闸门：本站已通关，或小游戏完成态，才能“我通过了这一站”/“下一站” */
+  function updateGate() {
+    var ok = stationCleared(id) || gameDone;
+    passBtn.disabled = !ok;
+    nextBtn.disabled = !ok;
+    if (stationCleared(id)) {
+      passBtn.textContent = "已走过这一站 · 返回地图";
+    } else if (gameDone) {
+      passBtn.textContent = "我通过了这一站";
+    } else {
+      passBtn.textContent = "先完成这一站的小挑战";
+    }
+  }
+  updateGate();
 
   var screen = el("div", { class: "screen" }, [
     el("div", { class: "kicker", text: "第 " + (index + 1) + " 站 / 10" }),

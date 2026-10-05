@@ -14,14 +14,17 @@ var CZ_COLLECT_KEY = "cz_collect";
 /* ---------- 本地存储封装 ---------- */
 function readStore(key) {
   try {
-    var raw = localStorage.getItem(key);
+    var raw = (typeof localStorage !== "undefined" && localStorage) ? localStorage.getItem(key) : null;
     return raw ? JSON.parse(raw) : {};
   } catch (e) {
     return {};
   }
 }
 function writeStore(key, obj) {
-  try { localStorage.setItem(key, JSON.stringify(obj)); } catch (e) { /* 隐私模式忽略 */ }
+  try {
+    if (typeof localStorage === "undefined" || !localStorage) return;
+    localStorage.setItem(key, JSON.stringify(obj));
+  } catch (e) { /* 隐私模式忽略 */ }
 }
 
 /* =====================================================
@@ -102,6 +105,31 @@ var _resetToken = 0;
 function resetInteraction() {
   _resetToken++;
   return _resetToken;
+}
+
+/* 险阻完成监听：小游戏达成完成态（在其根节点上加了 class "complete"）时回调。
+   不侵入 games.js 的玩法实现，只在容器上观察 complete 类的出现。 */
+function watchCompletion(root, onComplete) {
+  function isComplete() {
+    var hit = !!root && (
+      (root.classList && root.classList.contains("complete")) ||
+      (root.querySelector && root.querySelector(".complete"))
+    );
+    if (hit && typeof onComplete === "function") onComplete();
+    return hit;
+  }
+  if (isComplete()) return null;
+  if (!root || !root.querySelector) return null;
+  var obs = new MutationObserver(function () {
+    if (isComplete()) obs.disconnect();
+  });
+  obs.observe(root, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["class"]
+  });
+  return obs;
 }
 
 /* =====================================================

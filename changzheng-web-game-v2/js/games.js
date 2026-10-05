@@ -31,6 +31,283 @@
   function fit(sel, n) { return sel === n; }
 
   /* ===================================================
+     实时玩法共享框架（P2-action
+     - rtCanvas(ht)：按容器宽度自适应、DPR 清晰的 canvas
+     - rttMake(cfg)：回合制事件循环（RAF + dt + pointerdown），
+       每帧 draw，点击 tap；win() 置完成并在根节点加 complete
+       （main.js 的 watchCompletion 据此放行关卡门槛）。
+     - 纯触屏，中文温和失败，循环在节点脱离 DOM 时自停。
+     =================================================== */
+  function rtCanvas(ht) {
+    var cv = document.createElement("canvas");
+    cv.className = "rt-canvas";
+    cv.style.width = "100%";
+    cv.style.height = (ht || 320) + "px";
+    cv.style.touchAction = "none";
+    cv.style.display = "block";
+    return cv;
+  }
+
+  function rttMake(cfg) {
+    var ht = cfg.height || 320;
+    var cv = rtCanvas(ht);
+    var wrap = h("div", "rt-wrap");
+    if (cfg.tip) wrap.appendChild(h("div", "tip-bar", cfg.tip));
+    wrap.appendChild(cv);
+    var msg = h("div", "rt-msg", cfg.initialMsg || " ");
+    wrap.appendChild(msg);
+    var state = { t: 0, won: false, _last: 0, data: cfg.init ? cfg.init() : {} };
+    var running = false;
+
+    function ctx() { return cv.getContext("2d"); }
+
+    function resizeNow() {
+      var dpr = window.devicePixelRatio || 1;
+      var w = cv.clientWidth || (cv.parentNode ? cv.parentNode.clientWidth : 0) || 320;
+      cv.width = Math.round(w * dpr);
+      cv.height = Math.round(ht * dpr);
+      var c = ctx();
+      c.setTransform(dpr, 0, 0, dpr, 0, 0);
+      return w;
+    }
+
+    function loop(ts) {
+      if (!cv.isConnected) { running = false; return; }
+      if (!running) return;
+      var dt = state._last ? Math.min(0.05, (ts - state._last) / 1000) : 0.016;
+      state._last = ts;
+      state.t += dt;
+      var w = cv.clientWidth || cfg._lastW || 320;
+      cfg._lastW = w;
+      state._w = w;
+      if (cfg.update) cfg.update(dt, state, w, ht, win);
+      var c = ctx();
+      c.clearRect(0, 0, w, ht);
+      if (cfg.draw) cfg.draw(c, state, w, ht, ts / 1000);
+      if (running) requestAnimationFrame(loop);
+    }
+
+    function say(txt, shake) {
+      msg.textContent = txt;
+      msg.classList.remove("shake");
+      if (shake) { void msg.offsetWidth; msg.classList.add("shake"); }
+    }
+
+    cv.addEventListener("pointerdown", function (e) {
+      var r = cv.getBoundingClientRect();
+      var x = e.clientX - r.left, y = e.clientY - r.top;
+      if (cfg.tap) cfg.tap(state, x, y, ctx(), say, win);
+    });
+
+    function win() {
+      if (state.won) return;
+      state.won = true;
+      wrap.classList.add("complete");
+      if (cfg.onWin) cfg.onWin(state, say);
+    }
+
+    wrap._reset = function () { state.won = false; state.t = 0; state._last = 0; if (cfg.init) state.data = cfg.init(); if (cfg.onReset) cfg.onReset(state); msg.textContent = cfg.initialMsg || " "; };
+    wrap._say = say;
+    wrap.__state = state;   /* 测试/调试钩子（无副作用） */
+
+    requestAnimationFrame(function () {
+      if (!cv.isConnected) return;
+      resizeNow();
+      running = true;
+      requestAnimationFrame(loop);
+    });
+    return wrap;
+  }
+
+  /* 绘制小助手：圆弧/圆角矩形 */
+  function rr(c, x, y, w, h, r) {
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.arcTo(x + w, y, x + w, y + h, r);
+    c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r);
+    c.arcTo(x, y, x + w, y, r);
+    c.closePath();
+  }
+
+  /* ===================================================
+     于都站 · 搭浮桥（经典：华容道滑块拼图）
+     6 格板面放 5 块桥板(1..5)+1 空位；点击与空位相邻的桥板
+     把它滑进空位；按 1→2→3→4→5 排好即“桥搭好”。
+     初始从已排好乱序（保证可解）。触屏点格。
+     =================================================== */
+  function rtHuarongGame(stationData, engine) {
+    var COLS = 2, ROWS = 3;                 /* 2x3 板面 */
+    var SOLVED = [1, 2, 3, 4, 5, 0];        /* 0=空位 */
+    var cfg = {
+      height: 320,
+      tip: "💡 点跟空位挨着的桥板，把它滑进去；排成 1 2 3 4 5 就搭好了",
+      initialMsg: "华容道拼桥：把桥板滑到对的位置",
+      init: function () {
+        var b = SOLVED.slice();
+        /* 随机打乱：做 60 次合法滑动，保证可解 */
+        var blank = 5, moves = 0;
+        while (moves < 60) {
+          var nb = [];
+          var r = Math.floor(blank / COLS), c = blank % COLS;
+          if (r > 0) nb.push(blank - COLS);
+          if (r < ROWS - 1) nb.push(blank + COLS);
+          if (c > 0) nb.push(blank - 1);
+          if (c < COLS - 1) nb.push(blank + 1);
+          var pick = nb[Math.floor(Math.random() * nb.length)];
+          b[blank] = b[pick]; b[pick] = 0; blank = pick;
+          moves++;
+        }
+        return { b: b, blank: blank };
+      },
+      draw: function (c, s, W, H, t) {
+        var d = s.data, b = d.b;
+        var pad = 12, gap = 8;
+        var cellW = (W - pad * 2 - gap * (COLS - 1)) / COLS;
+        var cellH = (H - pad * 2 - gap * (ROWS - 1)) / ROWS;
+        c.fillStyle = "#18324b"; c.fillRect(0, 0, W, H);
+        for (var i = 0; i < b.length; i++) {
+          var r = Math.floor(i / COLS), col = i % COLS;
+          var x = pad + col * (cellW + gap), y = pad + r * (cellH + gap);
+          if (b[i] === 0) continue;
+          c.fillStyle = "#8a5a2b"; rr(c, x, y, cellW, cellH, 10); c.fill();
+          c.fillStyle = "#d9a25a"; rr(c, x + 4, y + 4, cellW - 8, cellH - 8, 8); c.fill();
+          c.fillStyle = "#4a2f1a"; c.font = "bold " + Math.round(cellH * 0.5) + "px sans-serif"; c.textAlign = "center";
+          c.fillText("桥" + b[i], x + cellW / 2, y + cellH / 2 + cellH * 0.16);
+          c.textAlign = "start";
+        }
+        var solved = d.b.join("") === SOLVED.join("");
+        c.fillStyle = solved ? "#dff0d6" : "#ffd9a0"; c.font = "15px sans-serif"; c.textAlign = "center";
+        c.fillText(solved ? "桥搭好了！" : "点空位旁边的桥板，滑进空位", W / 2, H - 4);
+        c.textAlign = "start";
+      },
+      tap: function (s, x, y, ctx, say, win) {
+        var d = s.data, b = d.b;
+        var pad = 12, gap = 8;
+        var W = s._w || 320, H = 320;
+        var cellW = (W - pad * 2 - gap * (COLS - 1)) / COLS;
+        var cellH = (H - pad * 2 - gap * (ROWS - 1)) / ROWS;
+        var col = Math.floor((x - pad) / (cellW + gap));
+        var r = Math.floor((y - pad) / (cellH + gap));
+        if (col < 0 || col >= COLS || r < 0 || r >= ROWS) { say("点一下空位旁边的桥板。", true); return; }
+        var idx = r * COLS + col;
+        if (b[idx] === 0) { say("这是空位，点旁边的桥板。"); return; }
+        var br = Math.floor(d.blank / COLS), bc = d.blank % COLS;
+        var ad = Math.abs(br - r) + Math.abs(bc - col);
+        if (ad === 1) {
+          b[d.blank] = b[idx]; b[idx] = 0; d.blank = idx;
+          if (b.join("") === SOLVED.join("")) { say("桥搭好了——桥板一块块拼到对岸！"); win(); }
+          else say("好，这块桥板归位了。");
+        } else {
+          say("桥板得跟空位挨着才能滑，点空位旁边的。", true);
+        }
+      },
+      onWin: function (s, say) { say("浮桥拼好了，队伍过河！"); }
+    };
+    return rttMake(cfg);
+  }
+
+  /* ===================================================
+     乌江站 · 渡江（经典：青蛙过河 Frogger）
+     红军小人在河底，利用河上漂流的竹筏/浮板一步一步跳向对岸。
+     跳到没浮板的江面会掉回岸边重来（温和）。跳上对岸即渡江成功。
+     方向按钮：← ↑ →（触屏）。
+     =================================================== */
+  function rtFroggerGame(stationData, engine) {
+    var ROWS = [
+      { dir: 1,  speed: 0.20, rafts: [0.05, 0.34, 0.63, 0.90] }, /* 上游：竹筏右漂 */
+      { dir: -1, speed: 0.26, rafts: [0.12, 0.46, 0.80] },        /* 中游：竹筏左漂 */
+      { dir: 1,  speed: 0.16, rafts: [0.0, 0.28, 0.56, 0.84] }    /* 下游：竹筏右漂 */
+    ];
+    var RAFT_LEN = 0.16;
+    function build() {
+      var wrap = rttMake({
+        height: 330,
+        tip: "💡 用 ←↑→ 让红军小人跳上漂的竹筏，一步步到对岸",
+        initialMsg: "踩着漂的竹筏，小心别掉进江里",
+        init: function () { return { row: 3, x: 0.5, t: 0, drifts: [0, 0, 0] }; },
+        update: function (dt, s, W, H, win) {
+          var d = s.data; d.t += dt;
+          /* 竹筏漂移 */
+          for (var r = 0; r < ROWS.length; r++) {
+            d.drifts[r] = (d.drifts[r] + ROWS[r].dir * ROWS[r].speed * dt) % 1;
+          }
+          /* 站在某行竹筏上时跟着漂 */
+          if (d.row >= 0 && d.row < ROWS.length) {
+            d.x = (d.x + ROWS[d.row].dir * ROWS[d.row].speed * dt + 1) % 1;
+          }
+        },
+        draw: function (c, s, W, H, t) {
+          var d = s.data;
+          var laneH = H / 5;
+          /* 对岸(win)与岸边 */
+          c.fillStyle = "#6d7f5a"; c.fillRect(0, 0, W, laneH);
+          c.fillStyle = "#e8dcc0"; c.fillRect(0, H - laneH, W, laneH);
+          /* 三条江 */
+          for (var r = 0; r < 3; r++) {
+            var y = (r + 1) * laneH;
+            c.fillStyle = "#3a6a9a"; c.fillRect(0, y, W, laneH);
+            /* 竹筏 */
+            ROWS[r].rafts.forEach(function (off) {
+              var x0 = (off + d.drifts[r]) % 1;
+              var px = x0 * W;
+              c.fillStyle = "#9a6a2b"; rr(c, px, y + laneH * 0.18, RAFT_LEN * W, laneH * 0.6, 6); c.fill();
+              c.fillStyle = "#6b4a1f"; c.fillRect(px + 2, y + laneH * 0.28, RAFT_LEN * W - 4, 3);
+            });
+          }
+          /* 红军小人 */
+          var fy = (H - laneH) - d.row * laneH - laneH * 0.5;
+          var fx = d.x * W;
+          c.fillStyle = "#b3202a"; c.beginPath(); c.arc(fx, fy, 16, 0, 6.283); c.fill();
+          c.fillStyle = "#ffd9a0"; c.beginPath(); c.arc(fx, fy - 5, 6, 0, 6.283); c.fill();
+          c.fillStyle = "#fff"; c.font = "15px sans-serif"; c.textAlign = "center";
+          c.fillText("红", fx, fy + 6);
+          c.fillStyle = "#e8dcc0"; c.font = "16px sans-serif"; c.textAlign = "center";
+          c.fillText("跳上对岸就过江啦", W / 2, laneH * 0.6);
+          c.textAlign = "start";
+        }
+      });
+      /* 方向按钮 */
+      var btns = h("div", "frog-btns");
+      ["◀", "▲", "▶"].forEach(function (sym, i) {
+        var b = h("button", "frog-btn", sym);
+        b.addEventListener("pointerdown", function (e) { e.preventDefault(); move(i); });
+        btns.appendChild(b);
+      });
+      wrap.appendChild(btns);
+
+      var wonFlag = false;
+      function sayMsg(t) { var w = wrap._say; if (w) w(t); }
+      function move(dir) {
+        if (wonFlag) return;
+        var s = wrap.__state, d = s.data;
+        if (dir === 0) { d.x = (d.x - 0.12 + 1) % 1; }
+        else if (dir === 2) { d.x = (d.x + 0.12) % 1; }
+        else if (dir === 1) {
+          d.row--;
+          if (d.row < 0) { d.row = 0; }
+          if (d.row === 0) { wonFlag = true; wrap.classList.add("complete"); sayMsg("渡江成功！红军小人踏上对岸！"); return; }
+          if (!onRaft(s)) { d.row = 3; d.x = 0.5; sayMsg("没踩稳，掉回岸边了，再来一次。", true); }
+          else sayMsg("踩上竹筏了，继续往前！");
+        }
+      }
+      function onRaft(s) {
+        var d = s.data, r = d.row - 1;
+        if (r < 0 || r >= ROWS.length) return false;
+        var x = d.x;
+        return ROWS[r].rafts.some(function (off) {
+          var x0 = (off + d.drifts[r]) % 1;
+          var x1 = (x0 + RAFT_LEN) % 1;
+          if (x0 < x1) return x >= x0 && x <= x1;
+          return x >= x0 || x <= x1;
+        });
+      }
+      return wrap;
+    }
+    return build();
+  }
+
+  /* ===================================================
      于都站 · 昼拆夜搭浮桥
      纯 DOM，点击桥节→点击锚点放置，移动端同样可用。
      =================================================== */
@@ -1239,8 +1516,8 @@
     return root;
   }
 
-  var REGISTRY = { bridge: bridgeGame,
-    ferry: ferryGame,
+  var REGISTRY = { bridge: rtHuarongGame,
+    ferry: rtFroggerGame,
     channel: channelGame,
     maze: mazeGame,
     boarding: boardingGame,
