@@ -1216,3 +1216,15 @@ button.full { width: 100%; margin-top: 8px; }
   touch-action: manipulation; user-select: none;
 }
 .frog-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--paper-dark); }
+
+/* ============ 记忆 Simon ============ */
+.simon-wrap { text-align: center; }
+.simon-btns { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 10px 0; }
+.simon-btn {
+  min-width: 130px; min-height: 64px; padding: 10px 14px; font-size: 20px; font-weight: 700;
+  background: var(--greensoft); color: var(--ink);
+  border: 3px solid var(--green); border-radius: 14px; box-shadow: 0 3px 0 var(--paper-dark);
+  transition: background .2s ease, transform .1s ease; touch-action: manipulation;
+}
+.simon-btn.lit { background: var(--ochre); border-color: var(--yellow); color: #fff; transform: scale(1.06); }
+.simon-status { font-size: 20px; font-weight: 700; color: var(--red-deep); margin-top: 4px; }

@@ -80,10 +80,16 @@
       var w = cv.clientWidth || cfg._lastW || 320;
       cfg._lastW = w;
       state._w = w;
-      if (cfg.update) cfg.update(dt, state, w, ht, win);
-      var c = ctx();
-      c.clearRect(0, 0, w, ht);
-      if (cfg.draw) cfg.draw(c, state, w, ht, ts / 1000);
+      try {
+        if (cfg.update) cfg.update(dt, state, w, ht, win);
+        var c = ctx();
+        c.clearRect(0, 0, w, ht);
+        if (cfg.draw) cfg.draw(c, state, w, ht, ts / 1000);
+      } catch (err) {
+        if (!window.__rtErr) window.__rtErr = [];
+        window.__rtErr.push(String(err && err.stack || err));
+        /* 出错不弄死循环，继续下一帧 */
+      }
       if (running) requestAnimationFrame(loop);
     }
 
@@ -109,6 +115,7 @@
     wrap._reset = function () { state.won = false; state.t = 0; state._last = 0; if (cfg.init) state.data = cfg.init(); if (cfg.onReset) cfg.onReset(state); msg.textContent = cfg.initialMsg || " "; };
     wrap._say = say;
     wrap.__state = state;   /* 测试/调试钩子（无副作用） */
+    wrap.__win = win;       /* 外部可控完成钩子 */
 
     requestAnimationFrame(function () {
       if (!cv.isConnected) return;
@@ -722,10 +729,102 @@
   }
 
   /* ===================================================
-     遵义站 · 等高线上找出口（山口 / 河谷 / 山脊）
-     三条候选北上通道，选河谷或山口正确、穿山脊温和提示。
-     正确即弹出小卡并进入通关态。
+     遵义站 · 找出口（经典：贪吃蛇沿山谷）
+     红军蛇沿等高线山谷前进，避开「密线高山」墙格，
+     吃掉「山口」节点；吃到 3 个山口即找到出口。
+     方向 ↑←↓→ 按钮控制；撞山/撞自己温和重试。
      =================================================== */
+  function rtSnakeGame(stationData, engine) {
+    var COLS = 8, ROWS = 6;
+    var WALL = "#3a5a3a";       /* 密线高山墙 */
+    var FOOD = "山";            /* 山口节点 */
+    /* 迷宫墙体：1=山，0=可走 */
+    var GRID = [
+      [1,1,1,1,1,1,1,1],
+      [1,0,0,1,0,1,0,1],
+      [1,0,0,0,0,0,0,1],
+      [1,0,1,1,0,1,0,1],
+      [1,0,0,0,0,0,0,1],
+      [1,1,1,1,1,1,1,1]
+    ];
+    var SPEED = 1.2;            /* 格/秒：约 0.83 步/秒，适合儿童 */
+    function build() {
+      var wrap = rttMake({
+        height: 320,
+        tip: "💡 用 ←↑↓→ 让红军沿山谷走，别撞上山，吃掉 3 个山口",
+        initialMsg: "吃掉山口的标记，走到出口；撞山会缓一缓",
+        init: function () {
+          return { snake: [{ r: 4, c: 1 }], dir: { r: -1, c: 0 }, acc: 0, eaten: 0, foods: [[1,2],[3,5],[2,3]], won: false };
+        },
+        update: function (dt, s, W, H, win) {
+          var d = s.data;
+          d.acc += dt;
+          if (d.acc >= 1 / SPEED) { d.acc = 0; stepSnake(d, win, function (t, sh) { var w = wrap._say; if (w) w(t, sh); }); }
+        },
+        draw: function (c, s, W, H, t) {
+          var d = s.data;
+          var cw = W / COLS, ch = H / ROWS;
+          for (var r = 0; r < ROWS; r++) for (var col = 0; col < COLS; col++) {
+            var x = col * cw, y = r * ch;
+            if (GRID[r][col] === 1) { c.fillStyle = WALL; c.fillRect(x, y, cw, ch); }
+            else { c.fillStyle = "#eef0d9"; c.fillRect(x, y, cw, ch); }
+          }
+          /* 山口节点 */
+          d.foods.forEach(function (f) {
+            var x = f[1] * cw + cw / 2, y = f[0] * ch + ch / 2;
+            c.fillStyle = "#d98a1f"; c.beginPath(); c.arc(x, y, cw * 0.22, 0, 6.283); c.fill();
+            c.fillStyle = "#fff"; c.font = (cw * 0.4) + "px sans-serif"; c.textAlign = "center";
+            c.fillText(FOOD, x, y + cw * 0.16);
+            c.textAlign = "start";
+          });
+          /* 蛇 */
+          d.snake.forEach(function (seg, i) {
+            var x = seg.c * cw, y = seg.r * ch;
+            c.fillStyle = i === 0 ? "#b3202a" : "#d66a5a";
+            rr(c, x + 2, y + 2, cw - 4, ch - 4, 6); c.fill();
+          });
+          c.fillStyle = "#4a5a2a"; c.font = "14px sans-serif";
+          c.fillText("已吃山口 " + d.eaten + " / 3", 8, H - 6);
+        }
+      });
+      /* 方向按钮 */
+      var btns = h("div", "frog-btns");
+      [["◀",{r:0,c:-1}],["▲",{r:-1,c:0}],["▼",{r:1,c:0}],["▶",{r:0,c:1}]].forEach(function (grp) {
+        var b = h("button", "frog-btn", grp[0]);
+        b.addEventListener("pointerdown", function (e) { e.preventDefault(); turn(grp[1]); });
+        btns.appendChild(b);
+      });
+      wrap.appendChild(btns);
+
+      function sayMsg(t, s) { var w = wrap._say; if (w) w(t, s); }
+      function turn(nd) {
+        var d = wrap.__state.data;
+        /* 禁止 180 度掉头 */
+        if (d.snake.length > 1 && (d.dir.r === -nd.r && d.dir.c === -nd.c)) return;
+        d.dir = nd;
+      }
+      function resetSnake(d) { d.snake = [{ r: 4, c: 1 }]; d.dir = { r: -1, c: 0 }; d.acc = 0; }
+      function stepSnake(d, win, say) {
+        if (d.won) return;
+        var head = { r: d.snake[0].r + d.dir.r, c: d.snake[0].c + d.dir.c };
+        if (head.r < 0 || head.r >= ROWS || head.c < 0 || head.c >= COLS || GRID[head.r][head.c] === 1) {
+          resetSnake(d); say("撞到高山了，缓一缓，沿山谷重新走。", true); return;
+        }
+        if (d.snake.some(function (s) { return s.r === head.r && s.c === head.c; })) {
+          resetSnake(d); say("缠在一起了，松开重来。", true); return;
+        }
+        d.snake.unshift(head);
+        var fx = d.foods.findIndex(function (f) { return f[0] === head.r && f[1] === head.c; });
+        if (fx >= 0) {
+          d.foods.splice(fx, 1); d.eaten++;
+          say("吃掉一个山口！");
+          if (d.eaten >= 3 || d.foods.length === 0) { d.won = true; win(); say("找到出口——赤水方向的河谷！"); }
+        } else { d.snake.pop(); }
+      }
+      return wrap;
+    }
+    return build();
+  }
   function channelGame(stationData, engine) {
     var routes = [
       { id: "valley", name: "河谷", note: "沿河山谷", correct: true },
@@ -797,6 +896,99 @@
     return root;
   }
 
+
+  /* ===================================================
+     四渡赤水 · 吃豆人（小红军躲敌影四渡）
+     红军小人在河谷网格吃「渡口豆」，灰色敌影沿固定路线巡逻。
+     吃到所有渡口豆即「四渡成功」；被敌影碰到 → 温和退回起点重试。
+     方向 ←↑↓→ 移动。
+     =================================================== */
+  function rtPacGame(stationData, engine) {
+    var GRID = [
+      [1,1,1,1,1,1,1,1,1,1],
+      [1,0,0,0,1,0,0,0,0,1],
+      [1,0,1,0,1,0,1,0,1,1],
+      [1,0,0,0,0,0,1,0,0,1],
+      [1,1,0,1,0,1,1,0,1,1],
+      [1,0,0,1,0,0,0,0,0,1],
+      [1,1,1,1,1,1,1,1,1,1]
+    ];
+    var COLS = 10, ROWS = 7;
+    var P0 = { r: 3, c: 1 }, G0 = { r: 1, c: 1 };
+    function build() {
+      var wrap = rttMake({
+        height: 320,
+        tip: "💡 用 ←↑↓→ 让红军吃渡口豆；灰色敌影会巡逻，别被它碰到",
+        initialMsg: "吃掉所有渡口豆就算渡过赤水",
+        init: function () {
+          var dots = 0;
+          for (var r = 0; r < ROWS; r++) for (var c = 0; c < COLS; c++) if (GRID[r][c] === 0) dots++;
+          return { pr: P0.r, pc: P0.c, gr: G0.r, gc: G0.c, gt: 0, dir: { r: 0, c: 1 }, dots: dots, eaten: {}, won: false };
+        },
+        update: function (dt, s, W, H, win) {
+          var d = s.data; if (d.won) return;
+          /* 敌影沿巡逻路径走 */
+          d.gt += dt;
+          if (d.gt >= 0.4) {
+            d.gt = 0;
+            var nr = d.gr + d.dir.r, nc = d.gc + d.dir.c;
+            if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS || GRID[nr][nc] === 1) {
+              /* 撞墙：换个方向（尝试转向） */
+              var choices = [[0,1],[0,-1],[1,0],[-1,0]];
+              for (var i = 0; i < 4; i++) {
+                var rr2 = d.gr + choices[i][0], cc2 = d.gc + choices[i][1];
+                if (rr2 >= 0 && rr2 < ROWS && cc2 >= 0 && cc2 < COLS && GRID[rr2][cc2] === 0) { d.dir = { r: choices[i][0], c: choices[i][1] }; nr = rr2; nc = cc2; break; }
+              }
+            }
+            d.gr = nr; d.gc = nc;
+            if (d.gr === d.pr && d.gc === d.pc) {
+              d.pr = P0.r; d.pc = P0.c; d.gr = G0.r; d.gc = G0.c; d.dir = { r: 0, c: 1 }; d.gt = 0;
+              var w2 = wrap._say; if (w2) w2("被敌影发现了，躲进河谷重来，渡口豆还留着。", true);
+            }
+          }
+        },
+        draw: function (c, s, W, H, t) {
+          var d = s.data, cw = W / COLS, ch = H / ROWS;
+          for (var r = 0; r < ROWS; r++) for (var col = 0; col < COLS; col++) {
+            var x = col * cw, y = r * ch;
+            if (GRID[r][col] === 1) { c.fillStyle = "#3a5a3a"; c.fillRect(x, y, cw, ch); }
+            else {
+              c.fillStyle = "#f0ecd8"; c.fillRect(x, y, cw, ch);
+              if (!d.eaten[r + "_" + col]) { c.fillStyle = "#d98a1f"; c.beginPath(); c.arc(x + cw / 2, y + ch / 2, cw * 0.16, 0, 6.283); c.fill(); }
+            }
+          }
+          /* 敌影 */
+          c.fillStyle = "#8a8a8a"; c.beginPath(); c.arc(d.gc * cw + cw / 2, d.gr * ch + ch / 2, cw * 0.38, 0, 6.283); c.fill();
+          c.fillStyle = "#666"; c.font = "16px sans-serif"; c.textAlign = "center"; c.fillText("敌", d.gc * cw + cw / 2, d.gr * ch + ch / 2 + 6);
+          /* 红军 */
+          c.fillStyle = "#b3202a"; c.beginPath(); c.arc(d.pc * cw + cw / 2, d.pr * ch + ch / 2, cw * 0.4, 0, 6.283); c.fill();
+          c.fillStyle = "#fff"; c.font = "16px sans-serif"; c.textAlign = "center"; c.fillText("红", d.pc * cw + cw / 2, d.pr * ch + ch / 2 + 6);
+          c.fillStyle = "#6b4a2a"; c.font = "14px sans-serif"; c.fillText("还差渡口豆 " + (d.dots - Object.keys(d.eaten).length), 8, H - 6);
+        }
+      });
+      /* 方向按钮 */
+      var btns = h("div", "frog-btns");
+      [["◀",0,-1],["▲",-1,0],["▼",1,0],["▶",0,1]].forEach(function (grp) {
+        var b = h("button", "frog-btn", grp[0]);
+        b.addEventListener("pointerdown", function (e) { e.preventDefault(); move(grp[1], grp[2]); });
+        btns.appendChild(b);
+      });
+      wrap.appendChild(btns);
+      function move(dr, dc) {
+        var d = wrap.__state.data; if (d.won) return;
+        var nr = d.pr + dr, nc = d.pc + dc;
+        if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS || GRID[nr][nc] === 1) { var w = wrap._say; if (w) w("这边是高山，过不去，换一边。", true); return; }
+        d.pr = nr; d.pc = nc;
+        var key = nr + "_" + nc;
+        if (GRID[nr][nc] === 0 && !d.eaten[key]) {
+          d.eaten[key] = true; var w2 = wrap._say; if (w2) w2("吃掉一颗渡口豆！");
+          if (Object.keys(d.eaten).length >= d.dots) { d.won = true; wrap.__win(); var w3 = wrap._say; if (w3) w3("四渡赤水，调虎离山成功！"); }
+        }
+      }
+      return wrap;
+    }
+    return build();
+  }
 
   /* ===================================================
      四渡赤水 · 迷阵推演（调虎离山）
@@ -895,6 +1087,109 @@
 
     renderStep();
     return root;
+  }
+
+  /* ===================================================
+     金沙江站 · 渡江秩序（经典：俄罗斯方块）
+     船队方块按序落下、排满一行即「渡江成功」清行。
+     排满 5 行即完成；触顶温和提示。←→↓ 移动、↻ 旋转。
+     =================================================== */
+  function rtTetrisGame(stationData, engine) {
+    var CW = 10, CH = 16, GOAL = 5;
+    var SHAPES = [
+      { m: [[1,1,1,1]], c: "#d98a1f" },
+      { m: [[1,1],[1,1]], c: "#e6c34a" },
+      { m: [[0,1,0],[1,1,1]], c: "#b3202a" },
+      { m: [[0,1,1],[1,1,0]], c: "#3a7a3a" },
+      { m: [[1,1,0],[0,1,1]], c: "#5a5aa8" },
+      { m: [[1,0,0],[1,1,1]], c: "#7a5aa8" },
+      { m: [[0,0,1],[1,1,1]], c: "#3a8a8a" }
+    ];
+    function build() {
+      var wrap = rttMake({
+        height: 300,
+        tip: "💡 用 ←→↓ 移动、↻ 旋转，把船队叠排满一行就清掉",
+        initialMsg: "排满 5 行，渡江守则达成",
+        init: function () {
+          var g = []; for (var r = 0; r < CH; r++) g.push(new Array(CW).fill(0));
+          return { g: g, cur: null, acc: 0, cleared: 0, won: false, t: 0 };
+        },
+        update: function (dt, s, W, H, win) {
+          var d = s.data;
+          if (d.won) return;
+          d.t += dt; d.acc += dt;
+          if (d.acc >= 0.55) { d.acc = 0; stepDown(d, win); }
+          if (!d.cur) spawn(d);
+        },
+        draw: function (c, s, W, H, t) {
+          var d = s.data;
+          var cw = W / CW, ch = H / CH;
+          c.fillStyle = "#12233a"; c.fillRect(0, 0, W, H);
+          for (var r = 0; r < CH; r++) for (var col = 0; col < CW; col++) {
+            if (d.g[r][col]) { c.fillStyle = d.g[r][col]; rr(c, col * cw + 1, r * ch + 1, cw - 2, ch - 2, 4); c.fill(); }
+          }
+          if (d.cur) {
+            var m = d.cur.m;
+            for (var ri = 0; ri < m.length; ri++) for (var cc = 0; cc < m[0].length; cc++) if (m[ri][cc]) {
+              var py = d.cur.y + ri, px = d.cur.x + cc;
+              if (py >= 0 && py < CH && px >= 0 && px < CW) { c.fillStyle = d.cur.c; rr(c, px * cw + 1, py * ch + 1, cw - 2, ch - 2, 4); c.fill(); }
+            }
+          }
+          c.fillStyle = "#fff"; c.font = "15px sans-serif"; c.fillText("已排满 " + d.cleared + " / " + GOAL + " 行", 8, 18);
+        }
+      });
+      var btns = h("div", "frog-btns");
+      [["◀",0,-1],["↻",9,9],["▶",0,1],["▼",1,0]].forEach(function (grp) {
+        var b = h("button", "frog-btn", grp[0]);
+        b.addEventListener("pointerdown", function (e) { e.preventDefault(); doAction(grp[1], grp[2]); });
+        btns.appendChild(b);
+      });
+      wrap.appendChild(btns);
+      function spawn(d) {
+        var i = Math.floor(Math.random() * SHAPES.length);
+        var m = SHAPES[i].m.map(function (row) { return row.slice(); });
+        d.cur = { m: m, c: SHAPES[i].c, x: Math.floor((CW - m[0].length) / 2), y: 0 };
+      }
+      function collides(d, m, x, y) {
+        for (var r = 0; r < m.length; r++) for (var cc = 0; cc < m[0].length; cc++) {
+          if (!m[r][cc]) continue;
+          var py = y + r, px = x + cc;
+          if (px < 0 || px >= CW || py >= CH) return true;
+          if (py >= 0 && d.g[py][px]) return true;
+        }
+        return false;
+      }
+      function stepDown(d, win) {
+        if (!d.cur) { spawn(d); return; }
+        if (!collides(d, d.cur.m, d.cur.x, d.cur.y + 1)) { d.cur.y++; return; }
+        lock(d);
+      }
+      function lock(d) {
+        var m = d.cur.m;
+        for (var r = 0; r < m.length; r++) for (var cc = 0; cc < m[0].length; cc++) if (m[r][cc] && d.cur.y + r >= 0) {
+          d.g[d.cur.y + r][d.cur.x + cc] = d.cur.c;
+        }
+        d.cur = null;
+        for (var ri = CH - 1; ri >= 0; ri--) {
+          if (d.g[ri].every(function (v) { return v; })) { d.g.splice(ri, 1); d.g.unshift(new Array(CW).fill(0)); d.cleared++; ri++; }
+        }
+        if (d.cleared >= GOAL) { d.won = true; wrap.__win(); var w2 = wrap._say; if (w2) w2("排满 5 行——渡江守则达成！"); }
+      }
+      function doAction(ar, ac) {
+        var d = wrap.__state.data; if (d.won || !d.cur) return;
+        if (ar === 9) { rotatePiece(d); return; }
+        if (!collides(d, d.cur.m, d.cur.x + ac, d.cur.y + ar)) { d.cur.x += ac; d.cur.y += ar; }
+        if (ar === 1) stepDown(d);
+      }
+      function rotatePiece(d) {
+        var m = d.cur.m, n = m.length, w = m[0].length;
+        var nm = []; for (var r = 0; r < w; r++) { nm.push([]); for (var cc = 0; cc < n; cc++) nm[r].push(m[n - 1 - cc][r]); }
+        var x = d.cur.x - Math.floor((w - n) / 2);
+        if (!collides(d, nm, x, d.cur.y)) { d.cur.m = nm; d.cur.x = x; }
+      }
+      return wrap;
+    }
+    return build();
   }
 
   /* ===================================================
@@ -1041,6 +1336,65 @@
 
 
   /* ===================================================
+     泸定桥站 · 抢时铺桥（经典：打地鼠）
+     桥板上会从某个桥洞冒出来，在它缩回前点中接住。
+     2×3 桥洞；接住 8 块桥板即「峡谷铺桥完成」。
+     =================================================== */
+  function rtWhackGame(stationData, engine) {
+    var COLS = 3, ROWS = 2, NEED = 8;
+    function build() {
+      var wrap = rttMake({
+        height: 300,
+        tip: "💡 木板从桥洞冒出来时，赶紧点中它接住",
+        initialMsg: "点中从桥洞里冒出的木板，接住 8 块",
+        init: function () { return { holes: [], timer: 0, done: 0, won: false }; },
+        update: function (dt, s, W, H, win) {
+          var d = s.data; if (d.won) { d.holes = []; return; }
+          d.timer += dt;
+          if (d.timer >= 1.0) { d.timer = 0; d.holes = [{ col: Math.floor(Math.random() * COLS), row: Math.floor(Math.random() * ROWS), life: 1.4 }]; }
+          for (var i = d.holes.length - 1; i >= 0; i--) {
+            d.holes[i].life -= dt;
+            if (d.holes[i].life <= 0) { d.holes.splice(i, 1); var w = wrap._say; if (w) w("这块木板缩回去了，错过啦，再试。", true); }
+          }
+        },
+        draw: function (c, s, W, H, t) {
+          var d = s.data, cw = W / COLS, ch = H / ROWS;
+          c.fillStyle = "#7c5a2a"; c.fillRect(0, 0, W, H);
+          for (var r = 0; r < ROWS; r++) for (var col = 0; col < COLS; col++) {
+            var x = col * cw, y = r * ch;
+            c.fillStyle = "#4a3118"; c.beginPath(); c.ellipse(x + cw / 2, y + ch * 0.72, cw * 0.34, ch * 0.26, 0, 0, 6.283); c.fill();
+            c.fillStyle = "#2a1d0e"; c.beginPath(); c.ellipse(x + cw / 2, y + ch * 0.72, cw * 0.22, ch * 0.16, 0, 0, 6.283); c.fill();
+          }
+          d.holes.forEach(function (h) {
+            var x = h.col * cw, y = h.row * ch;
+            c.fillStyle = "#b9884a"; rr(c, x + cw * 0.2, y + ch * 0.18, cw * 0.6, ch * 0.5, 6); c.fill();
+            c.fillStyle = "#6b4a1f"; c.font = "20px sans-serif"; c.textAlign = "center"; c.fillText("桥板", x + cw / 2, y + ch * 0.5);
+          });
+          c.fillStyle = "#fff"; c.font = "16px sans-serif"; c.textAlign = "center"; c.fillText("接住木板 " + d.done + " / " + NEED, W / 2, H - 8);
+        }
+      });
+      wrap.addEventListener("pointerdown", function (e) {
+        var cv = wrap.querySelector(".rt-canvas"); var r = cv.getBoundingClientRect();
+        tapAt(e.clientX - r.left, e.clientY - r.top);
+      });
+      function tapAt(x, y) {
+        var s = wrap.__state, d = s.data; if (d.won) return;
+        var W = s._w || 320, H = 300, cw = W / COLS, ch = H / ROWS;
+        var col = Math.floor(x / cw), row = Math.floor(y / ch);
+        if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return;
+        var hit = d.holes.findIndex(function (h) { return h.col === col && h.row === row; });
+        if (hit >= 0) {
+          d.holes.splice(hit, 1); d.done++; say("接住一块桥板！");
+          if (d.done >= NEED) { d.won = true; wrap.__win(); say("桥板一块块接稳了——峡谷铺桥完成！"); }
+        } else say("木板不在这儿，看准桥洞再点。", true);
+      }
+      function say(t, sh) { var w = wrap._say; if (w) w(t, sh); }
+      return wrap;
+    }
+    return build();
+  }
+
+  /* ===================================================
      泸定桥站 · 飞夺泸定桥（峡谷铺桥）
      纯 DOM：先选路线（3 条），再把 5 块木板铺上铁链，
      全部铺完显示「铺桥完成」。
@@ -1093,6 +1447,79 @@
     root.appendChild(plankRow);
 
     return root;
+  }
+
+  /* ===================================================
+     通用记忆 Simon（夹金山/腊子口复用）
+     - 一串按钮依次亮起，玩家照着顺序再点一遍。
+     - 点对到最后 → 完成；点错 → 温和提示并再放一遍。
+     =================================================== */
+  function rtSimon(stationData, engine, opts) {
+    var labels = opts.labels;
+    var seqLen = opts.seqLen || 4;
+    var winMsg = opts.winMsg || "完成！";
+    var wrap = h("div", "simon-wrap");
+    wrap.appendChild(h("div", "tip-bar", opts.tip || "💡 记住亮灯的顺序，照着点一遍"));
+    var btns = h("div", "simon-btns");
+    var els = [];
+    labels.forEach(function (l, i) {
+      var b = h("button", "simon-btn", "⬤ " + l);
+      b.addEventListener("click", function () { onPress(i); });
+      btns.appendChild(b); els.push(b);
+    });
+    wrap.appendChild(btns);
+    var status = h("div", "simon-status", opts.initial || "记住亮灯的顺序");
+    wrap.appendChild(status);
+    var seq = [], progress = 0, playing = false;
+    function makeSeq() { var s = []; for (var i = 0; i < seqLen; i++) s.push(Math.floor(Math.random() * labels.length)); return s; }
+    function flash(i, dur) { var el = els[i]; el.classList.add("lit"); setTimeout(function () { el.classList.remove("lit"); }, dur || 400); }
+    function playSeq() {
+      playing = true; status.textContent = "看好亮灯顺序…";
+      var k = 0;
+      function next() {
+        if (k >= seq.length) { playing = false; progress = 0; status.textContent = "轮到你了，照着点一遍"; return; }
+        flash(seq[k]); k++; setTimeout(next, 600);
+      }
+      setTimeout(next, 500);
+    }
+    function onPress(i) {
+      if (playing || seq.length === 0) return;
+      flash(i, 250);
+      if (seq[progress] === i) {
+        progress++;
+        if (progress >= seq.length) {
+          status.textContent = winMsg;
+          wrap.classList.add("complete");
+        }
+      } else {
+        status.textContent = "顺序没对上，再记一遍";
+        playSeq();
+      }
+    }
+    seq = makeSeq();
+    setTimeout(function () { playSeq(); }, 700);
+    return wrap;
+  }
+
+  /* 夹金山：记忆天气窗顺序（正午出发） */
+  function rtSnowSimon(stationData, engine) {
+    return rtSimon(stationData, engine, {
+      labels: ["天刚亮", "正午", "快傍晚"],
+      seqLen: 4,
+      tip: "💡 记住天气窗亮起的顺序，按顺序点一遍，把正午留在中间",
+      initial: "记天气窗顺序：天刚亮→正午→快傍晚",
+      winMsg: "正午出发，踏雪开道完成！"
+    });
+  }
+  /* 腊子口：记忆配合时序（牵制→攀爬→信号） */
+  function rtCliffSimon(stationData, engine) {
+    return rtSimon(stationData, engine, {
+      labels: ["正面牵制", "侧崖攀爬", "发信号"],
+      seqLen: 5,
+      tip: "💡 记住「牵制→攀爬→信号」的配合顺序",
+      initial: "记配合顺序，照着点",
+      winMsg: "正面牵制、侧崖迂回——通道打开了！"
+    });
   }
 
   /* ===================================================
@@ -1187,6 +1614,81 @@
     });
 
     return root;
+  }
+
+  /* ===================================================
+     草地站 · 踏草甸（经典：别踩白块儿）
+     4 列草甸从上方落下，绿「草甸」格是安全的，紫「泥潭」格不能踩。
+     点中落下的安全草甸 → 接住一块；点错/漏接 → 温和重试。
+     接住 8 块草甸即走通草地。
+     =================================================== */
+  function rtMarshTiles(stationData, engine) {
+    var COLS = 4, NEED = 8;
+    function build() {
+      var wrap = rttMake({
+        height: 330,
+        tip: "💡 草甸从上面落下来，点中绿色草甸才算踩稳；紫色的泥潭别碰",
+        initialMsg: "接住 8 块安全草甸，别踩到泥潭",
+        init: function () {
+          return { tiles: [], speed: 0.30, acc: 0, done: 0, spawnT: 0, won: false };
+        },
+        update: function (dt, s, W, H, win) {
+          var d = s.data;
+          if (d.won) { d.tiles = []; return; }
+          d.spawnT += dt;
+          if (d.spawnT >= 0.9 && d.done + d.tiles.length < NEED) {
+            d.spawnT = 0;
+            d.tiles.push({ col: (d.done + d.tiles.length) % COLS, y: 0, kind: "grass" });
+          }
+          for (var i = d.tiles.length - 1; i >= 0; i--) {
+            d.tiles[i].y += d.speed * dt;
+            if (d.tiles[i].y > 1.18) { d.tiles.splice(i, 1); var w = wrap._say; if (w) w("草甸落了，没踩到，再试。", true); }
+          }
+        },
+        draw: function (c, s, W, H, t) {
+          var d = s.data;
+          var cw = W / COLS;
+          c.fillStyle = "#8a6a3a"; c.fillRect(0, 0, W, H);
+          for (var i = 0; i < COLS; i++) {
+            c.fillStyle = "#a98a4a"; c.fillRect(i * cw, 0, cw, H);
+            c.fillStyle = "#6a4a2a"; c.fillRect(i * cw + cw - 3, 0, 3, H);
+          }
+          d.tiles.forEach(function (tile) {
+            var tx = tile.col * cw, ty = (tile.y - 0.2) * H;
+            c.fillStyle = "#7fb069";
+            rr(c, tx + 8, ty, cw - 16, 60, 8); c.fill();
+            c.fillStyle = "#fff"; c.font = "22px sans-serif"; c.textAlign = "center";
+            c.fillText("草甸", tx + cw / 2, ty + 38);
+          });
+          c.fillStyle = "#fff"; c.font = "16px sans-serif"; c.textAlign = "center";
+          c.fillText("接住草甸 " + d.done + " / " + NEED, W / 2, H - 8);
+        }
+      });
+      wrap.addEventListener("pointerdown", function (e) {
+        var cv = wrap.querySelector(".rt-canvas");
+        var r = cv.getBoundingClientRect();
+        tapAt(e.clientX - r.left, e.clientY - r.top);
+      });
+      function tapAt(x, y) {
+        var s = wrap.__state, d = s.data;
+        if (d.won) return;
+        var W = s._w || 320, cw = W / COLS;
+        var col = Math.floor(x / cw);
+        if (col < 0 || col >= COLS) return;
+        var hit = -1;
+        for (var i = 0; i < d.tiles.length; i++) { if (d.tiles[i].col === col && d.tiles[i].y > 0.12) { hit = i; break; } }
+        if (hit >= 0) {
+          d.tiles.splice(hit, 1); d.done++;
+          say("踩稳一块草甸！");
+          if (d.done >= NEED) { d.won = true; wrap.__win(); say("看清草甸再下脚——草地走通了！"); }
+        } else {
+          say("踩到泥潭边缘了，大家拉住你，换一块重来。", true);
+        }
+      }
+      function say(t, s) { var w = wrap._say; if (w) w(t, s); }
+      return wrap;
+    }
+    return build();
   }
 
   /* ===================================================
@@ -1413,6 +1915,79 @@
     return root;
   }
 
+/* ===================================================
+     会师站 · 三路汇流（经典：连线一笔画）
+     红一/红二/红四三支红军从三边出发，各绕开「山」走一条路，
+     汇到中央会宁火炬。⇄ 切换当前指挥哪路；←↑↓→ 让它走一步。
+     三路都到火炬即「三路星火相聚」。
+     =================================================== */
+  function rtJoinGame(stationData, engine) {
+    var N = 9, CENTER = { r: 4, c: 4 };
+    var ST = [ { r: 0, c: 4, c: "#b3202a" }, { r: 4, c: 0, c: "#d98a1f" }, { r: 4, c: 8, c: "#3a7a3a" } ];
+    var MOUNT = { "3_4": 1, "5_4": 1, "4_3": 1, "4_5": 1 };
+    function build() {
+      var wrap = rttMake({
+        height: 330,
+        tip: "💡 ⇄ 切换当前队伍，←↑↓→ 让它绕开山走向中央火炬",
+        initialMsg: "让三支队伍分别汇到会宁火炬",
+        init: function () {
+          var paths = ST.map(function (st) { return [{ r: st.r, c: st.c }]; });
+          return { paths: paths, active: 0, reached: 0, won: false };
+        },
+        draw: function (c, s, W, H, t) {
+          var d = s.data, cw = W / N, ch = H / N;
+          c.fillStyle = "#f5efdd"; c.fillRect(0, 0, W, H);
+          for (var key in MOUNT) {
+            var p = key.split("_"); var mr = +p[0], mc = +p[1];
+            c.fillStyle = "#5a6a3a"; rr(c, mc * cw + 1, mr * ch + 1, cw - 2, ch - 2, 6); c.fill();
+            c.fillStyle = "#fff"; c.font = "13px sans-serif"; c.textAlign = "center"; c.fillText("山", mc * cw + cw / 2, mr * ch + ch / 2 + 5);
+          }
+          /* 火炬 */
+          c.fillStyle = "#e6a23c"; c.beginPath(); c.arc(CENTER.c * cw + cw / 2, CENTER.r * ch + ch / 2, cw * 0.4, 0, 6.283); c.fill();
+          c.fillStyle = "#fff"; c.font = "14px sans-serif"; c.textAlign = "center"; c.fillText("会师", CENTER.c * cw + cw / 2, CENTER.r * ch + ch / 2 + 5);
+          /* 三路 */
+          d.paths.forEach(function (path, i) {
+            path.forEach(function (cell, j) {
+              var x = cell.c * cw + cw / 2, y = cell.r * ch + ch / 2;
+              c.fillStyle = ST[i].c;
+              c.beginPath(); c.arc(x, y, j === path.length - 1 ? cw * 0.34 : cw * 0.26, 0, 6.283); c.fill();
+            });
+          });
+          c.fillStyle = "#4a2f1a"; c.font = "15px sans-serif"; c.textAlign = "center";
+          c.fillText("当前指挥：第 " + (d.active + 1) + " 路 · 已汇合 " + d.reached + " / 3", W / 2, H - 6);
+        }
+      });
+      var btns = h("div", "frog-btns");
+      [["⇄",9,9],["◀",0,-1],["▲",-1,0],["▼",1,0],["▶",0,1]].forEach(function (grp) {
+        var b = h("button", "frog-btn", grp[0]);
+        b.addEventListener("pointerdown", function (e) { e.preventDefault(); act(grp[1], grp[2]); });
+        btns.appendChild(b);
+      });
+      wrap.appendChild(btns);
+      function act(ar, ac) {
+        var d = wrap.__state.data; if (d.won) return;
+        if (ar === 9) { d.active = (d.active + 1) % 3; var w0 = wrap._say; if (w0) w0("切到第 " + (d.active + 1) + " 路。"); return; }
+        var path = d.paths[d.active];
+        var head = path[path.length - 1];
+        var nr = head.r + ar, nc = head.c + ac;
+        if (nr < 0 || nr >= N || nc < 0 || nc >= N || MOUNT[nr + "_" + nc]) {
+          d.paths[d.active] = [{ r: ST[d.active].r, c: ST[d.active].c }];
+          var w1 = wrap._say; if (w1) w1("撞到山/走出路了，这一路退回起点重来。", true); return;
+        }
+        if (path.some(function (cell) { return cell.r === nr && cell.c === nc; })) {
+          var w2 = wrap._say; if (w2) w2("这条路自己缠起来了，退回去。", true); return;
+        }
+        path.push({ r: nr, c: nc });
+        if (nr === CENTER.r && nc === CENTER.c && !d.reached) {
+          d.reached++; var w3 = wrap._say; if (w3) w3("第 " + (d.active + 1) + " 路抵达会宁！");
+          if (d.reached >= 3) { d.won = true; wrap.__win(); var w4 = wrap._say; if (w4) w4("三路星火终于相聚！"); }
+        }
+      }
+      return wrap;
+    }
+    return build();
+  }
+
   function rendezvousGame(stationData, engine) {
     var rows = [
       { key: "red1", label: "红一方面军", route: null },
@@ -1518,14 +2093,14 @@
 
   var REGISTRY = { bridge: rtHuarongGame,
     ferry: rtFroggerGame,
-    channel: channelGame,
-    maze: mazeGame,
-    boarding: boardingGame,
-    snowPass: snowPassGame,
-    plankBridge: plankBridgeGame,
-    marsh: marshGame,
-    cliffRoute: cliffRouteGame,
-    rendezvous: rendezvousGame };
+    channel: rtSnakeGame,
+    maze: rtPacGame,
+    boarding: rtTetrisGame,
+    snowPass: rtSnowSimon,
+    plankBridge: rtWhackGame,
+    marsh: rtMarshTiles,
+    cliffRoute: rtCliffSimon,
+    rendezvous: rtJoinGame };
 
   function renderDanger(container, stationData, engine) {
     var type = stationData && stationData.interactive && stationData.interactive.type;
