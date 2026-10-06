@@ -703,6 +703,12 @@ function renderEnding() {
     el("div", { class: "ending-wrap" }, [
       el("div", { class: "kicker", text: "三大主力会师 · 从烽火到星辰" }),
       el("div", { class: "paper-title", text: "长征胜利会师" }),
+      heroImage(
+        "assets/img/huishi-10-sanshi.png",
+        "会师会宁·将台堡 · 历史插画，非精确地图",
+        "hero-img hero-img-ending",
+        "会师画卷插图未加载 · 请查看结局文字"
+      ),
       el("div", { class: "intro-visual", text: "会师画卷 · 路线示意" }),
       el("p", { class: "body", text: "红一、红二、红四方面军三路北上，在甘肃会宁、宁夏将台堡会师，长征胜利结束。" }),
       el("div", { class: "quote-card", text: "「三路星火，终于聚成一把火炬。」" }),
