@@ -312,18 +312,21 @@ function renderIntro() {
   var act = INTRO_ACTS[introIndex];
   var isLast = (introIndex === INTRO_ACTS.length - 1);
 
-  /* 第一幕接入真实烽火图；其余幕无对应图，用非虚假的路线示意文字 */
+  /* 五幕全部使用真实本地素材，不再把占位文字当作画面 */
   var introVisual;
-  if (introIndex === 0) {
-    introVisual = heroImage(
-      "assets/img/intro-0-fenghuo.png",
-      "红军从于都出发的烽火启程画面",
-      "hero-img",
-      "路线示意 · 烽火启程图未加载，请检查本地图片资源"
-    );
-  } else {
-    introVisual = el("div", { class: "intro-visual", text: act.visual + " · 路线示意/交互预览" });
-  }
+  var introArts = [
+    ["assets/img/intro-0-fenghuo.png", "红军从于都出发的烽火启程画面"],
+    ["assets/map/china_basemap_745.jpg", "中国标准地图与长征路线示意"],
+    ["assets/img/zunyi-3-youdao.png", "遵义山谷与路线选择历史插画"],
+    ["assets/img/wujiang-2-dujiang.png", "乌江渡江与行走选择历史插画"],
+    ["assets/img/huishi-10-sanshi.png", "会师会宁·将台堡历史插画"]
+  ];
+  var art = introArts[introIndex];
+  introVisual = heroImage(
+    art[0], art[1] + "（历史插画/标准地图，非精确地图）",
+    introIndex === 1 ? "hero-img intro-map-img" : "hero-img",
+    act.visual + "画面未加载 · 请检查本地素材"
+  );
 
   var screen = el("div", { class: "screen" }, [
     el("div", { class: "intro-wrap" }, [

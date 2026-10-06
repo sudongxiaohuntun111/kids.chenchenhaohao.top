@@ -174,9 +174,24 @@ button.full { width: 100%; margin-top: 8px; }
   font-size: 24px;
   font-weight: 800;
 }
-.intro-actions { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 360px; }
+.intro-wrap .hero-figure {
+  width: min(92vw, 720px);
+  max-width: 720px;
+  margin: 0 auto;
+}
+.intro-wrap .hero-figure img.hero-img {
+  width: 100%;
+  height: auto;
+  max-height: 46vh;
+  object-fit: contain;
+  object-position: center;
+  background: var(--paper-dark);
+}
+.intro-wrap .hero-figure img.intro-map-img {
+  max-height: 42vh;
+  object-fit: contain;
+}
 
-/* ---------- 主图（P1 艺术接入） ---------- */
 .hero-figure {
   width: 100%;
   max-width: 720px;
