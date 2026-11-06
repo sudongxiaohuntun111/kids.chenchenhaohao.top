@@ -396,12 +396,17 @@
     .panel{padding:5px 10px;border-width:3px;border-radius:10px;max-height:98vh;}
     .ov-title{font-size:clamp(20px,4.2vh,32px);margin-bottom:4px;}
     .ov-sub{font-size:clamp(12px,2.2vh,17px);margin-bottom:6px;}
-    .steps{gap:3px;margin-bottom:6px;}
-    .steps li{padding:3px 7px;font-size:clamp(11px,1.85vh,15px);gap:6px;border-width:2px;border-radius:8px;}
+    .overlay{padding:4px;align-items:center;}
+    .ov-orient{margin:3px auto 2px;padding:3px 5px;font-size:9px;}
+    .panel{width:calc(100vw - 8px);max-height:calc(100dvh - 8px);overflow:hidden;padding:4px 7px;border-width:3px;border-radius:9px;}
+    .ov-title{font-size:clamp(18px,3.8vh,27px);white-space:nowrap;margin-bottom:2px;}
+    .ov-sub{font-size:11px;margin-bottom:3px;line-height:1.15;}
+    .steps{grid-template-columns:1fr 1fr;gap:3px;margin-bottom:3px;}
+    .steps li{min-height:34px;padding:2px 4px;font-size:10px;gap:4px;border-width:1px;border-radius:6px;line-height:1.15;}
     .stepno{width:20px;height:20px;font-size:11px;}
-    .ov-note{font-size:clamp(10px,1.7vh,14px);margin:2px 0 4px;line-height:1.25;}
-    .ov-btn{min-height:44px;min-width:150px;font-size:clamp(14px,2.6vh,20px);padding:5px 12px;border-width:3px;box-shadow:0 3px 0 #6b4700;}
-    .ov-btns{gap:8px;margin-top:6px;}
+    .ov-note{font-size:9px;margin:2px 0 3px;line-height:1.15;}
+    .ov-btn{min-height:36px;min-width:0;flex:1 1 30%;font-size:13px;padding:3px 5px;border-width:2px;box-shadow:0 2px 0 #6b4700;}
+    .ov-btns{gap:4px;margin-top:3px;}
   }
   @media (max-width:640px){
     .brand small{display:none;}
@@ -1509,16 +1514,21 @@
     });
   }
   function startLevel(levelIndex) {
-    requestGameFullscreen();
-    buildLevel(levelIndex);
-    S.running = true;
-    hideOverlay();
-    updateHUD();
-    renderPanel();
-    renderLaneHighlight();
-    updateSkillsUI();
-    toast('看五路 → 点危险路 → 点汉字牌听音 → 按顺序拼读', 2800);
-    window.setTimeout(showRotateHint, 3200);
+    // 必须在用户点击事件中先请求全屏，再进入游戏；成功后再锁定横屏
+    const enter = function () {
+      buildLevel(levelIndex);
+      S.running = true;
+      hideOverlay();
+      updateHUD();
+      renderPanel();
+      renderLaneHighlight();
+      updateSkillsUI();
+      toast('已进入游戏：全屏横屏更好操作', 2200);
+      window.setTimeout(showRotateHint, 2600);
+    };
+    const fs = requestGameFullscreen();
+    if (fs && typeof fs.then === 'function') fs.then(enter); else enter();
+    return;
   }
   function endGame(win) {
     if (S.over) return;
