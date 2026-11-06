@@ -359,6 +359,8 @@
     border:4px solid #7a5200;border-radius:12px;box-shadow:0 5px 0 #6b4700;
     cursor:pointer;touch-action:manipulation;
   }
+  .ov-orient{margin:8px auto 2px;padding:7px 12px;max-width:420px;color:#fff3c4;background:rgba(35,61,76,.72);border:1px solid rgba(255,220,120,.65);border-radius:10px;font-size:clamp(12px,2.1vh,16px);font-weight:800;}
+  .rotate-start{background:linear-gradient(#4d9a57,#2f6b38)!important;border-color:#9fe0a7!important;}
   .ov-btn:active{transform:translateY(4px);box-shadow:0 1px 0 #6b4700;}
   .ov-btn.secondary{color:#122433;background:linear-gradient(#dfeefa,#aac4d8);border-color:#486074;box-shadow:0 5px 0 #314555;}
   .ov-stats{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:8px 0 12px;}
@@ -1538,6 +1540,12 @@
         handleAction(this.getAttribute('data-action'));
       });
     }
+    const startRotate = document.getElementById('btnStartRotate');
+    if (startRotate) startRotate.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      requestGameFullscreen();
+      showRotateHint();
+    });
   }
   function hideOverlay() {
     el.overlay.classList.remove('show');
@@ -1561,9 +1569,11 @@
         '</ol>' +
         '<p class="ov-note">拼错：基地 <b>-1</b>，末影人会瞬移 · 苦力怕 <b>8 秒</b>后引爆 <b>-2</b> · 敌人摸到基地 <b>-1</b><br>' +
         '技能：<b>空袭</b>清空选中路 · <b>战术侦察</b>提示下一部件 · <b>战地医疗</b>回复 1 点生命</p>' +
+        '<div class="ov-orient">📱 建议横屏游玩，距离更宽、反应更从容</div>' +
         '<div class="ov-btns">' +
           '<button type="button" class="ov-btn" data-action="level1">▶ 开始第一关</button>' +
           '<button type="button" class="ov-btn secondary" data-action="level2">直接挑战第二关</button>' +
+          '<button class="ov-btn rotate-start" id="btnStartRotate" type="button">↻ 切换横屏</button>' +
         '</div>' +
       '</div>';
     showOverlay(html);
