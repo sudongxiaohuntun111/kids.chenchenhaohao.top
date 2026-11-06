@@ -1,0 +1,21 @@
+{
+  "id": "./",
+  "name": "拼音保卫战·五路防线",
+  "short_name": "拼音保卫战",
+  "description": "拼音塔防游戏，建议横屏游玩",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#14222f",
+  "theme_color": "#14222f",
+  "icons": [
+    {
+      "src": "./pinyin-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

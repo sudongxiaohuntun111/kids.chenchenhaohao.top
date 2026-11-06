@@ -3,6 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#14222f">
+<link rel="manifest" href="./manifest.webmanifest">
 <meta name="color-scheme" content="dark">
 <title>拼音保卫战 V2 · 五路防线</title>
 <style>
@@ -900,16 +905,21 @@
     PINYIN_DATA.level1.concat(PINYIN_DATA.level2).forEach(function (it) {
       it.parts.forEach(function (x) { if (hasToneMark(x) && finals.indexOf(x) < 0) finals.push(x); });
     });
-    // 干扰项也必须遵守拼音视觉规则：韵母一律带声调，避免“看声调找答案”。
-    const isFinal = function (x) { return hasToneMark(x) || /^[aeiouü]/.test(x); };
+    // 韵母干扰项也带调；三拼音节还要给介母同类干扰，不能靠未标调元音暴露答案。
+    const medials = ['i', 'u', 'ü'];
     const used = correct.slice();
     const extras = [];
-    function take(pool, wantFinal) {
-      const candidates = shuffle(pool).filter(function (x) { return used.indexOf(x) < 0 && (!wantFinal || hasToneMark(x)); });
+    function take(pool, requireTone) {
+      const candidates = shuffle(pool).filter(function (x) { return used.indexOf(x) < 0 && (!requireTone || hasToneMark(x)); });
       const x = candidates[0]; if (x) { used.push(x); extras.push(x); }
     }
-    // 二拼：两个声母干扰 + 一个带调韵母；三拼：声母/介母/带调韵母混合干扰。
-    take(initials, false); take(initials, false); take(finals, true);
+    if (correct.length === 3) {
+      take(initials, false);
+      take(medials, false);
+      take(finals, true);
+    } else {
+      take(initials, false); take(initials, false); take(finals, true);
+    }
     while (extras.length < 3) take(finals, true);
     let cards = shuffle(correct.concat(extras));
     let guard = 0;
@@ -1581,8 +1591,9 @@
     const startRotate = document.getElementById('btnStartRotate');
     if (startRotate) startRotate.addEventListener('click', function (ev) {
       ev.stopPropagation();
-      requestGameFullscreen();
-      showRotateHint();
+      requestGameFullscreen().then(function (locked) {
+        if (!locked) toast('浏览器不允许网页强制旋转；添加到主屏幕后打开可由应用方向设置生效', 4200);
+      });
     });
   }
   function hideOverlay() {
@@ -1607,11 +1618,11 @@
         '</ol>' +
         '<p class="ov-note">拼错：基地 <b>-1</b>，末影人会瞬移 · 苦力怕 <b>8 秒</b>后引爆 <b>-2</b> · 敌人摸到基地 <b>-1</b><br>' +
         '技能：<b>空袭</b>清空选中路 · <b>战术侦察</b>提示下一部件 · <b>战地医疗</b>回复 1 点生命</p>' +
-        '<div class="ov-orient">📱 建议横屏游玩，距离更宽、反应更从容</div>' +
+        '<div class="ov-orient">📱 想自动全屏横屏：请先“添加到主屏幕”，从桌面图标打开；浏览器内可点按钮尝试</div>' +
         '<div class="ov-btns">' +
           '<button type="button" class="ov-btn" data-action="level1">▶ 开始第一关</button>' +
           '<button type="button" class="ov-btn secondary" data-action="level2">直接挑战第二关</button>' +
-          '<button class="ov-btn rotate-start" id="btnStartRotate" type="button">↻ 切换横屏</button>' +
+          '<button class="ov-btn rotate-start" id="btnStartRotate" type="button">↻ 全屏横屏</button>' +
         '</div>' +
       '</div>';
     showOverlay(html);

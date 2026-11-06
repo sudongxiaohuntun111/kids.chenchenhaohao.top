@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#18334a"/>
+  <path d="M80 145h352v62H80zm0 80h352v62H80zm0 80h352v62H80zm0 80h352v42H80z" fill="#62a44c"/>
+  <path d="M145 110h222v292H145z" fill="#8b6038" stroke="#e6bf72" stroke-width="18"/>
+  <text x="256" y="315" text-anchor="middle" font-size="190" font-family="sans-serif" font-weight="800" fill="#fff4d0">拼</text>
+  <path d="M370 370l63 0" stroke="#ffd447" stroke-width="20" stroke-linecap="round"/>
+</svg>
