@@ -891,10 +891,26 @@
   }
 
   /* ---------- 渲染：面板 / 卡片 / 道路 ---------- */
+  const TONE_CHARS = 'āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ';
+  function hasToneMark(x) { return TONE_CHARS.indexOf(x.split('').find(function (c) { return TONE_CHARS.indexOf(c) >= 0; }) || '') >= 0; }
   function buildCards(item) {
     const correct = item.parts.slice();
-    const pool = PINYIN_DATA.distractors.filter(function (p) { return correct.indexOf(p) < 0; });
-    const extras = shuffle(pool).slice(0, 3);
+    const initials = PINYIN_DATA.distractors.filter(function (x) { return !hasToneMark(x) && /^[bcdfghjklmnpqrstvwxyz]+$/.test(x); });
+    const finals = [];
+    PINYIN_DATA.level1.concat(PINYIN_DATA.level2).forEach(function (it) {
+      it.parts.forEach(function (x) { if (hasToneMark(x) && finals.indexOf(x) < 0) finals.push(x); });
+    });
+    // 干扰项也必须遵守拼音视觉规则：韵母一律带声调，避免“看声调找答案”。
+    const isFinal = function (x) { return hasToneMark(x) || /^[aeiouü]/.test(x); };
+    const used = correct.slice();
+    const extras = [];
+    function take(pool, wantFinal) {
+      const candidates = shuffle(pool).filter(function (x) { return used.indexOf(x) < 0 && (!wantFinal || hasToneMark(x)); });
+      const x = candidates[0]; if (x) { used.push(x); extras.push(x); }
+    }
+    // 二拼：两个声母干扰 + 一个带调韵母；三拼：声母/介母/带调韵母混合干扰。
+    take(initials, false); take(initials, false); take(finals, true);
+    while (extras.length < 3) take(finals, true);
     let cards = shuffle(correct.concat(extras));
     let guard = 0;
     while (guard < 20 && cards.length >= correct.length &&
