@@ -408,6 +408,19 @@
     .ov-btn{min-height:36px;min-width:0;flex:1 1 30%;font-size:13px;padding:3px 5px;border-width:2px;box-shadow:0 2px 0 #6b4700;}
     .ov-btns{gap:4px;margin-top:3px;}
   }
+  @media (max-width:640px) and (min-height:561px){
+    .overlay{padding:4px;align-items:center;}
+    .panel{width:calc(100vw - 8px);max-height:calc(100dvh - 8px);overflow:hidden;padding:6px 8px;border-width:3px;border-radius:9px;}
+    .ov-title{font-size:22px;white-space:nowrap;margin-bottom:3px;}
+    .ov-sub{font-size:12px;margin-bottom:4px;line-height:1.2;}
+    .steps{grid-template-columns:1fr 1fr;gap:4px;margin-bottom:4px;}
+    .steps li{min-height:42px;padding:3px 5px;font-size:11px;gap:4px;border-width:1px;border-radius:6px;line-height:1.2;}
+    .stepno{width:18px;height:18px;font-size:10px;}
+    .ov-note{font-size:10px;margin:3px 0 4px;line-height:1.2;}
+    .ov-orient{margin:3px auto 3px;padding:4px 6px;font-size:10px;}
+    .ov-btns{gap:4px;margin-top:4px;}
+    .ov-btn{min-height:40px;min-width:0;flex:1 1 30%;font-size:13px;padding:3px 4px;border-width:2px;box-shadow:0 2px 0 #6b4700;}
+  }
   @media (max-width:640px){
     .brand small{display:none;}
     #hud{gap:5px;}
